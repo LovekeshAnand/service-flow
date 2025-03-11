@@ -4,7 +4,8 @@ import Navbar from "../src/components/Navbar";
 import Footer from "../src/components/Footer";
 import ProfilePage from "../src/page/Profile";
 import ServiceDashboard from "../src/page/ServiceDashboard";
-import ServicesPage from "../src/page/ServicesPage"; // ✅ Added Services Page
+import ServicesPage from "../src/page/ServicesPage";
+import ServiceDetails from "../src/page/ServiceDetails"; // ✅ Import ServiceDetails component
 
 function App() {
   return (
@@ -15,7 +16,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile/:userId" element={<ProfilePage />} />
-            <Route path="/services" element={<ServicesPage />} /> {/* ✅ New Route */}
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/services/:id" element={<ServiceDetails />} /> {/* ✅ Added ServiceDetails Route */}
             <Route path="/services/:id/dashboard" element={<ServiceDashboard />} />
           </Routes>
         </main>

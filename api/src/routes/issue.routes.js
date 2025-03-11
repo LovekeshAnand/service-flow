@@ -20,7 +20,7 @@ const router = express.Router();
 router.get("/:serviceId/issues", getAllIssuesForService);
 
 // ✅ Create a new issue under a service (Protected)
-router.post("/service/:serviceId/issues", verifyJWT, upload.none(), createIssue);
+router.post("/service/:serviceId", verifyJWT, upload.none(), createIssue);
 
 // ✅ Fetch a single issue with comments & replies (Public)
 router.get("/service/:serviceId/issues/:issueId", getIssueById);

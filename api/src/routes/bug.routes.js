@@ -20,7 +20,7 @@ const router = express.Router();
 router.get("/:serviceId/bugs", getAllBugsForService);
 
 // ✅ Create a new bug under a service (Protected)
-router.post("/service/:serviceId/bugs", verifyJWT, upload.none(), createBug);
+router.post("/service/:serviceId", verifyJWT, upload.none(), createBug);
 
 // ✅ Fetch a single bug with comments & replies (Public)
 router.get("/service/:serviceId/bugs/:bugId", getBugById);

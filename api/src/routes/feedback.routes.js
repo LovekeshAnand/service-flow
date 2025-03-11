@@ -20,7 +20,7 @@ const router = express.Router();
 router.get("/:serviceId/feedbacks", getAllFeedbacksForService);
 
 // ✅ Create a new feedback under a service (Protected)
-router.post("/service/:serviceId/feedbacks", verifyJWT, upload.none(), createFeedback);
+router.post("/service/:serviceId", verifyJWT, upload.none(), createFeedback);
 
 // ✅ Fetch a single feedback with comments & replies (Public)
 router.get("/service/:serviceId/feedbacks/:feedbackId", getFeedbackById);
