@@ -27,37 +27,70 @@ const generateAccessAndRefreshTokens = async (serviceId) => {
 
 /** ✅ Register Service (Uploads logo to Cloudinary) */
 const registerService = asyncHandler(async (req, res) => {
-    const { serviceName, email, password, description } = req.body;
+    const { serviceName, email, password, description, serviceLink } = req.body;
     const logoLocalPath = req.file?.path;
 
-    if (![serviceName, email, password, description].every(Boolean) || !logoLocalPath) {
-        throw new ApiError(400, "All fields, including logo, are required.");
+    if (![serviceName, email, password, description, serviceLink].every(Boolean) || !logoLocalPath) {
+        throw new ApiError(400, "All fields, including logo, are required");
     }
 
     const existingService = await Service.findOne({ email });
     if (existingService) {
-        throw new ApiError(409, "Service with this email already exists.");
+        throw new ApiError(409, "Service with this email already exists");
     }
 
     // Upload logo to Cloudinary
     const logoUpload = await uploadOnCloudinary(logoLocalPath);
-    if (!logoUpload?.url) {
-        throw new ApiError(500, "Error while uploading logo to Cloudinary.");
+    const logoUrl = logoUpload.url
+    if (!logoUrl) {
+        throw new ApiError(500, "Error while uploading logo to Cloudinary");
     }
+
+    const cloudinaryLogoId = logoUrl.split("/").pop().split(".")[0];
 
     const service = await Service.create({
         serviceName,
+        serviceLink,
         email,
         password,
         description,
         logo: logoUpload.url,
-        cloudinaryLogoId: logoUpload.public_id,
+        cloudinaryLogoId: cloudinaryLogoId
     });
 
+    // Fetch created service without sensitive fields
     const createdService = await Service.findById(service._id).select("-password -refreshToken");
 
-    return res.status(201).json(new ApiResponse(201, createdService, "Service registered successfully."));
+    // Generate tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(service._id);
+
+    if (!accessToken || !refreshToken) {
+        throw new ApiError(500, "Failed to generate authentication tokens");
+    }
+
+    // Set cookies securely
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    });
+
+    // Send response
+    return res.status(201).json(
+        new ApiResponse(201, {
+            service: createdService,
+            accessToken,
+            refreshToken,
+        }, "Service registered successfully!")
+    );
 });
+
 
 /** ✅ Login Service */
 const loginService = asyncHandler(async (req, res) => {
@@ -77,14 +110,38 @@ const loginService = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid credentials.");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(service._id);
+    // Fetch service without sensitive fields
     const loggedInService = await Service.findById(service._id).select("-password -refreshToken");
 
-    return res.status(200)
-        .cookie("accessToken", accessToken, { httpOnly: true, secure: true })
-        .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true })
-        .json(new ApiResponse(200, { service: loggedInService, accessToken, refreshToken }, "Service logged in successfully."));
+    // Generate tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(service._id);
+
+    if (!accessToken || !refreshToken) {
+        throw new ApiError(500, "Failed to generate authentication tokens.");
+    }
+
+    // Set cookies securely
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    });
+
+    return res.status(200).json(
+        new ApiResponse(200, { 
+            service: loggedInService, 
+            accessToken, 
+            refreshToken 
+        }, "Service logged in successfully.")
+    );
 });
+
 
 /** ✅ Logout Service */
 const logoutService = asyncHandler(async (req, res) => {
@@ -130,7 +187,7 @@ const refreshServiceAccessToken = asyncHandler(async (req, res) => {
 /** ✅ Update Service (Supports Cloudinary Logo Update) */
 const updateService = asyncHandler(async (req, res) => {
     const { serviceId } = req.params;
-    const { name, email, description, password } = req.body;
+    const { serviceName, email, description, password, serviceLink } = req.body;
     const logoLocalPath = req.file?.path;
 
     if (req.service._id.toString() !== serviceId) {
@@ -153,14 +210,17 @@ const updateService = asyncHandler(async (req, res) => {
 
     // Upload new logo & delete old one only if a new file is provided
     if (logoLocalPath) {
-        await deleteFromCloudinary(service.cloudinaryLogoId, "image");
+        await deleteFromCloudinary(service.cloudinaryLogoId);
         const newLogo = await uploadOnCloudinary(logoLocalPath);
-        service.logo = newLogo.url;
-        service.cloudinaryLogoId = newLogo.public_id;
+        const newLogoUrl = newLogo.url
+        const newCloudinaryLogoId = newLogoUrl.split("/").pop().split(".")[0];
+        service.logo = newLogoUrl;
+        service.cloudinaryLogoId = newCloudinaryLogoId;
     }
 
-    if (name) service.name = name;
+    if (serviceName) service.serviceName = serviceName;
     if (description) service.description = description;
+    if (serviceLink) service.serviceLink = serviceLink;
     if (password) service.password = await bcrypt.hash(password, 10);
 
     await service.save();
@@ -196,19 +256,33 @@ const deleteService = asyncHandler(async (req, res) => {
 const getServiceDetails = asyncHandler(async (req, res) => {
     const { serviceId } = req.params;
 
-    const service = await Service.findById(serviceId).select("logo description");
+    // Fetch service details including serviceName and email
+    const service = await Service.findById(serviceId).select("logo description serviceName email serviceLink");
+    
     if (!service) {
         throw new ApiError(404, "Service not found.");
     }
 
+    // Fetch related statistics
     const [bugCount, feedbackCount, issueCount] = await Promise.all([
         Bug.countDocuments({ service: serviceId }),
         Feedback.countDocuments({ service: serviceId }),
         Issue.countDocuments({ service: serviceId })
     ]);
 
-    return res.status(200).json(new ApiResponse(200, { logo: service.logo, description: service.description, bugs: bugCount, feedbacks: feedbackCount, issues: issueCount }, "Service details retrieved successfully."));
+    // Send updated response
+    return res.status(200).json(new ApiResponse(200, {
+        logo: service.logo,
+        serviceLink: service.serviceLink,
+        description: service.description,
+        serviceName: service.serviceName,  // Added
+        email: service.email,              // Added
+        bugs: bugCount,
+        feedbacks: feedbackCount,
+        issues: issueCount
+    }, "Service details retrieved successfully."));
 });
+
 
 /** ✅ Get All Services (Pagination + Search + Sorting) */
 const getAllServices = asyncHandler(async (req, res) => {
@@ -221,7 +295,7 @@ const getAllServices = asyncHandler(async (req, res) => {
     const totalPages = Math.ceil(totalServices / limit);
 
     const services = await Service.find(query)
-        .select("serviceName logo") // ✅ Select only necessary fields
+        .select("serviceName logo description") // ✅ Added 'description'
         .sort(sortOptions)
         .skip((page - 1) * limit)
         .limit(parseInt(limit));
@@ -230,6 +304,7 @@ const getAllServices = asyncHandler(async (req, res) => {
         new ApiResponse(200, { services, totalPages, currentPage: parseInt(page) }, "Services retrieved successfully.")
     );
 });
+
 
 
 export { registerService, loginService, logoutService, refreshServiceAccessToken, getAllServices, updateService, deleteService, getServiceDetails };

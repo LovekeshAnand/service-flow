@@ -18,6 +18,18 @@ const SplitText = ({
   const [inView, setInView] = useState(false);
   const ref = useRef();
   const animatedCount = useRef(0);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -30,7 +42,9 @@ const SplitText = ({
       { threshold, rootMargin }
     );
 
-    observer.observe(ref.current);
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
 
     return () => observer.disconnect();
   }, [threshold, rootMargin]);
@@ -56,14 +70,29 @@ const SplitText = ({
     }))
   );
 
+  // Responsive font size calculations
+  const getBackgroundFontSize = () => {
+    if (windowWidth < 640) return "text-8xl"; // Small mobile
+    if (windowWidth < 768) return "text-9xl"; // Mobile
+    if (windowWidth < 1024) return "text-[200px]"; // Tablet
+    return "text-[350px]"; // Desktop
+  };
+
+  const getAnimatedTextSize = () => {
+    if (windowWidth < 640) return "text-3xl mt-[-20px]"; // Small mobile
+    if (windowWidth < 768) return "text-4xl mt-[-30px]"; // Mobile
+    if (windowWidth < 1024) return "text-6xl mt-[-50px]"; // Tablet
+    return "text-8xl mt-[-80px]"; // Desktop
+  };
+
   return (
     <div className="relative w-full flex justify-center items-center text-center">
       {/* Large Background Text */}
       <div className="absolute inset-0 flex flex-col justify-center items-center z-0 leading-none">
-        <h1 className="text-[350px] font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-green-700 to-white dark:to-black opacity-30 select-none">
+        <h1 className={`${getBackgroundFontSize()} font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-green-700 to-white dark:to-black opacity-30 select-none`}>
           SERVICE
         </h1>
-        <h1 className="text-[350px] font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-green-700 to-white dark:to-black opacity-30 select-none">
+        <h1 className={`${getBackgroundFontSize()} font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-green-700 to-white dark:to-black opacity-30 select-none`}>
           FLOW
         </h1>
       </div>
@@ -71,7 +100,7 @@ const SplitText = ({
       {/* Animated Text */}
       <p
         ref={ref}
-        className={`split-parent ${className} relative z-10 mt-[-80px] text-8xl font-extrabold text-green-700 dark:text-green-500`}
+        className={`split-parent ${className} relative z-10 font-extrabold text-green-700 dark:text-green-500 ${getAnimatedTextSize()}`}
         style={{
           textAlign,
           overflow: "hidden",

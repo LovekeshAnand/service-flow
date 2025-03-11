@@ -4,6 +4,7 @@ export default {
     content: [
       "./index.html",
       "./src/**/*.{js,ts,jsx,tsx}",
+      "./node_modules/@heroui/react/dist/**/*.{js,ts,jsx,tsx}" // ✅ Added Hero UI
     ],
     theme: {
     	extend: {
@@ -57,5 +58,4 @@ export default {
     	}
     },
     plugins: [require("tailwindcss-animate")],
-  };
-  
+};

@@ -1,14 +1,27 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "../src/page/Home";
 import Navbar from "../src/components/Navbar";
-import Footer from "../src/components/Footer"
+import Footer from "../src/components/Footer";
+import ProfilePage from "../src/page/Profile";
+import ServiceDashboard from "../src/page/ServiceDashboard";
+import ServicesPage from "../src/page/ServicesPage"; // ✅ Added Services Page
 
 function App() {
   return (
-    <>
-      <Navbar />
-      <Home />
-      <Footer />
-    </>
+    <Router>
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow pt-24 pb-10">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/profile/:userId" element={<ProfilePage />} />
+            <Route path="/services" element={<ServicesPage />} /> {/* ✅ New Route */}
+            <Route path="/services/:id/dashboard" element={<ServiceDashboard />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 

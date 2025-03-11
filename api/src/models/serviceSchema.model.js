@@ -9,6 +9,16 @@ const serviceSchema = new Schema ({
         trim: true
     },
 
+    cloudinaryLogoId: {
+        type: String,
+        required: true
+    },
+
+    serviceLink: {
+        type: String,
+        required: true
+    },
+
     email: {
         type: String,
         required: true,

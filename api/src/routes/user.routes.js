@@ -13,7 +13,7 @@ import { upload } from "../middleware/multer.middleware.js";
 const router = express.Router();
 
 // ✅ Register a new user (Public)
-router.post("/register",registerUser);
+router.post("/register", upload.none(),registerUser);
 
 // ✅ Login user (Public)
 router.post("/login", upload.none() , loginUser);
