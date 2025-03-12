@@ -7,7 +7,9 @@ import {
     refreshAccessToken,
     updateUser,
     getUserProfile,
-    getUserUpvotedServices
+    getUserUpvotedServices,
+    getUserIssues,
+    getUserFeedbacks
 } from "../controllers/userAuth.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 
@@ -33,5 +35,8 @@ router.get("/:userId/upvoted-services", verifyJWT, getUserUpvotedServices);
 
 // ✅ Update user details (Protected - Requires password verification)
 router.put("/:userId", verifyJWT, updateUser);
+
+router.get("/:userId/issues", verifyJWT, getUserIssues);
+router.get("/:userId/feedbacks", verifyJWT, getUserFeedbacks);
 
 export default router;

@@ -345,21 +345,26 @@ const downvoteIssue = asyncHandler(async (req, res) => {
             // Update the issue vote counts
             issue.upvotes -= 1;
             issue.downvotes += 1;
-            issue.netVotes -= 2; // -1 for removing upvote, -1 for adding
+            issue.netVotes -= 2; // -1 for removing upvote, -1 for adding downvote
             await issue.save();
             
             return res.status(200).json(new ApiResponse(200, { voteType: "downvote" }, "Vote changed to downvote."));
         }
     } else {
-        // Create a new downvote
-        await Vote.create({ user: userId, issue: issueId, voteType: "downvote" });
+        // Create a new downvote - FIX: use targetId and targetType instead of issue
+        await Vote.create({ 
+            user: userId, 
+            targetId: issueId,
+            targetType: "Issue",
+            voteType: "downvote" 
+        });
         
-        // Update the feedback vote counts
+        // Update the issue vote counts
         issue.downvotes += 1;
         issue.netVotes -= 1;
         await issue.save();
         
-        return res.status(201).json(new ApiResponse(201, { voteType: "downvote" }, "issue downvoted."));
+        return res.status(201).json(new ApiResponse(201, { voteType: "downvote" }, "Issue downvoted."));
     }
 });
 

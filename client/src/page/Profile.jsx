@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserCircle, AlertCircle, MessageSquare, Edit, X, ThumbsUp } from 'lucide-react';
+import { UserCircle, AlertCircle, MessageSquare, Edit, X, ThumbsUp, FileText, MessageCircle } from 'lucide-react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -250,9 +250,16 @@ const UpvotedServices = ({ userId }) => {
           withCredentials: true,
         });
         
-        setServices(response.data.data.services);
-        setTotalPages(response.data.data.totalPages);
+        // Ensure we have a valid services array
+        if (response.data?.data?.services && Array.isArray(response.data.data.services)) {
+          setServices(response.data.data.services);
+          setTotalPages(response.data.data.totalPages || 1);
+        } else {
+          setServices([]);
+          setTotalPages(1);
+        }
       } catch (err) {
+        console.error("Failed to load upvoted services:", err);
         setError("Failed to load upvoted services");
         showAlert("Error", "Failed to load upvoted services", "error");
       } finally {
@@ -279,7 +286,7 @@ const UpvotedServices = ({ userId }) => {
     );
   }
 
-  if (services.length === 0) {
+  if (!services || services.length === 0) {
     return (
       <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
         <p className="text-gray-600 dark:text-gray-400">No upvoted services yet.</p>
@@ -292,46 +299,61 @@ const UpvotedServices = ({ userId }) => {
       <h3 className="text-2xl font-bold mb-6 text-green-700 dark:text-green-500">Upvoted Services</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => (
-          <motion.div
-            key={service._id}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-          >
-            <div className="flex items-center mb-3">
-              {service.logo ? (
-                <img src={service.logo} alt={service.serviceName} className="w-10 h-10 rounded-full mr-3" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
-                  <span className="text-green-700 dark:text-green-300 font-bold">
-                    {service.serviceName?.charAt(0)}
-                  </span>
-                </div>
-              )}
-              <h4 className="font-semibold text-lg flex-1 truncate">{service.serviceName}</h4>
-            </div>
-            
-            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 h-10">
-              {service.description || "No description available"}
-            </p>
-            
-            <div className="flex items-center justify-between mt-4">
-              <span className="flex items-center text-green-600 dark:text-green-400">
-                <ThumbsUp size={16} className="mr-1" />
-                {service.upvotes || 0}
-              </span>
+        {services.map((service) => {
+          // Skip any null or invalid services
+          if (!service || typeof service !== 'object') return null;
+          
+          return (
+            <motion.div
+              key={service._id || `service-${Math.random()}`}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              <div className="flex items-center mb-3">
+                {service.logo ? (
+                  <img 
+                    src={service.logo} 
+                    alt={service.serviceName || "Service"} 
+                    className="w-10 h-10 rounded-full mr-3"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://via.placeholder.com/40"; // Fallback image
+                    }}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
+                    <span className="text-green-700 dark:text-green-300 font-bold">
+                      {service.serviceName?.charAt(0) || "?"}
+                    </span>
+                  </div>
+                )}
+                <h4 className="font-semibold text-lg flex-1 truncate">
+                  {service.serviceName || "Unnamed Service"}
+                </h4>
+              </div>
               
-              <Link 
-                to={`/services/${service._id}`}
-                className="text-sm text-green-600 dark:text-green-400 hover:underline"
-              >
-                View Details →
-              </Link>
-            </div>
-          </motion.div>
-        ))}
+              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 h-10">
+                {service.description || "No description available"}
+              </p>
+              
+              <div className="flex items-center justify-between mt-4">
+                <span className="flex items-center text-green-600 dark:text-green-400">
+                  <ThumbsUp size={16} className="mr-1" />
+                  {service.upvotes || 0}
+                </span>
+                
+                <Link 
+                  to={`/services/${service._id}`}
+                  className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                >
+                  View Details →
+                </Link>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
       
       {totalPages > 1 && (
@@ -370,6 +392,7 @@ const ProfilePage = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const { showAlert } = useAlert();
   const [dataLoaded, setDataLoaded] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -377,34 +400,54 @@ const ProfilePage = () => {
       
       try {
         const token = localStorage.getItem("token");
+        
+        if (!token) {
+          throw new Error("Authentication required. Please log in.");
+        }
+        
         const response = await axios.get(`${API_BASE_URL}/profile/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });
         
-        setUser(response.data.data.user);
-        setUserStats({
-          feedbacks: response.data.data.userStats.feedbacks || [],
-          issues: response.data.data.userStats.issues || []
-        });
-        setDataLoaded(true);
-        
-        showAlert("Profile Loaded", "Profile data loaded successfully", "success");
+        if (response.data?.data?.user) {
+          setUser(response.data.data.user);
+          setUserStats({
+            feedbacks: response.data.data.userStats?.feedbacks || [],
+            issues: response.data.data.userStats?.issues || []
+          });
+          setDataLoaded(true);
+          
+          showAlert("Profile Loaded", "Profile data loaded successfully", "success");
+        } else {
+          throw new Error("Invalid response format from server");
+        }
       } catch (err) {
         console.error("Profile fetch error:", err.response?.data || err.message);
-        setError("Failed to load profile. Please try again later.");
-        showAlert("Error", "Failed to load profile", "error");
+        
+        if (err.response?.status === 401) {
+          showAlert("Authentication Error", "Please log in to view this profile", "error");
+          navigate("/login");
+        } else {
+          setError("Failed to load profile. " + (err.response?.data?.message || err.message || "Please try again later."));
+          showAlert("Error", "Failed to load profile", "error");
+        }
       } finally {
         setLoading(false);
       }
     };
     
     fetchUserProfile();
-  }, [userId, dataLoaded, showAlert]);
+  }, [userId, dataLoaded, showAlert, navigate]);
 
   const handleUpdate = async (updateData) => {
     try {
       const token = localStorage.getItem("token");
+      
+      if (!token) {
+        throw new Error("Authentication required. Please log in.");
+      }
+      
       await axios.put(`${API_BASE_URL}/${userId}`, updateData, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
@@ -418,10 +461,18 @@ const ProfilePage = () => {
       setUser(response.data.data.user);
       showAlert("Success", "Profile updated successfully", "success");
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Update failed";
+      const errorMessage = err.response?.data?.message || "Update failed: " + (err.message || "Unknown error");
       showAlert("Error", errorMessage, "error");
       throw new Error(errorMessage);
     }
+  };
+  
+  const handleViewIssues = () => { 
+    navigate(`/users/${userId}/issues`); 
+  };
+    
+  const handleViewFeedbacks = () => { 
+    navigate(`/users/${userId}/feedbacks`); 
   };
 
   if (loading) {
@@ -440,6 +491,7 @@ const ProfilePage = () => {
         <Button 
           onClick={() => {
             setDataLoaded(false);
+            setError(null);
             window.location.reload();
           }} 
           className="mt-6 bg-green-600 hover:bg-green-700 text-white text-lg py-3 px-6"
@@ -469,10 +521,10 @@ const ProfilePage = () => {
               </h1>
               <div className="space-y-2">
                 <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Username:</span> {user?.username}
+                  <span className="font-medium">Username:</span> {user?.username || "N/A"}
                 </p>
                 <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Email:</span> {user?.email}
+                  <span className="font-medium">Email:</span> {user?.email || "N/A"}
                 </p>
                 <p className="text-gray-600 dark:text-gray-400">
                   <span className="font-medium">Member Since:</span>{" "}
@@ -488,15 +540,34 @@ const ProfilePage = () => {
           <CounterCard 
             icon={<AlertCircle size={32} className="text-white" />}
             label="Issues Created"
-            count={userStats.issues.length}
+            count={userStats?.issues?.length || 0}
             color="bg-gradient-to-br from-violet-500 to-violet-700"
           />
           <CounterCard 
             icon={<MessageSquare size={32} className="text-white" />}
             label="Feedbacks Shared"
-            count={userStats.feedbacks.length}
+            count={userStats?.feedbacks?.length || 0}
             color="bg-gradient-to-br from-teal-500 to-teal-700"
           />
+        </div>
+
+        {/* Activity Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Button 
+            onClick={handleViewIssues}
+            className="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+          >
+            <FileText size={24} />
+            <span>View My Issues</span>
+          </Button>
+          
+          <Button 
+            onClick={handleViewFeedbacks}
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+          >
+            <MessageCircle size={24} />
+            <span>View My Feedbacks</span>
+          </Button>
         </div>
 
         {/* Update Profile Button */}

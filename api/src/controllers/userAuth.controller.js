@@ -231,6 +231,7 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 /** ✅ Get User Profile with Stats (Feedbacks, Issues with Services) */
+/** ✅ Get User Profile with Stats (Feedbacks, Issues with Services) */
 const getUserProfile = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
@@ -238,24 +239,36 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(userId).select("fullname email username createdAt");
 
   if (!user) {
-      throw new ApiError(404, "User not found.");
+    throw new ApiError(404, "User not found.");
   }
 
   // ✅ Fetch , Feedbacks & Issues along with Services
-  const [ feedbacks, issues, upvotedServices] = await Promise.all([
-      Feedback.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
-      Issue.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
-      ServiceVote.find({ user: user._id }).populate('service', 'serviceName logo')
+  const [feedbacks, issues, upvotedServices] = await Promise.all([
+    Feedback.aggregate([
+      { $match: { openedBy: user._id } }, 
+      { $group: { _id: "$service", count: { $sum: 1 } } }
+    ]),
+    Issue.aggregate([
+      { $match: { openedBy: user._id } }, 
+      { $group: { _id: "$service", count: { $sum: 1 } } }
+    ]),
+    ServiceVote.find({ user: user._id }).populate('service', 'serviceName logo')
   ]);
 
-  // ✅ Format response to show Service IDs & Counts
+  // ✅ Format response to show Service IDs & Counts with null checks
   const userStats = {
-      feedbacks: feedbacks.map(({ _id, count }) => ({ serviceId: _id, count })),
-      issues: issues.map(({ _id, count }) => ({ serviceId: _id, count })),
-      upvotedServices: upvotedServices.map(vote => ({
-          serviceId: vote.service._id,
-          serviceName: vote.service.serviceName,
-          logo: vote.service.logo
+    feedbacks: feedbacks
+      .filter(feedback => feedback && feedback._id)
+      .map(({ _id, count }) => ({ serviceId: _id, count })),
+    issues: issues
+      .filter(issue => issue && issue._id)
+      .map(({ _id, count }) => ({ serviceId: _id, count })),
+    upvotedServices: upvotedServices
+      .filter(vote => vote && vote.service) // Make sure service exists
+      .map(vote => ({
+        serviceId: vote.service._id,
+        serviceName: vote.service.serviceName,
+        logo: vote.service.logo
       }))
   };
 
@@ -302,6 +315,191 @@ const getUserUpvotedServices = asyncHandler(async (req, res) => {
   );
 });
 
+/** ✅ Get All Issues Created By User with Search and Sorting */
+const getUserIssues = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { 
+    page = 1, 
+    limit = 10, 
+    search = "", 
+    sortBy = "createdAt", 
+    sortOrder = "desc",
+    status
+  } = req.query;
+
+  // Verify user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  // Ensure only the user or admins can see the user's issues
+  if (req.user._id.toString() !== userId && req.user.role !== "admin") {
+    throw new ApiError(403, "Unauthorized: You can only view your own issues.");
+  }
+
+  const pageInt = parseInt(page);
+  const limitInt = parseInt(limit);
+  const skip = (pageInt - 1) * limitInt;
+
+  // Build the query
+  const query = { openedBy: userId };
+
+  // Add search functionality
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } }
+    ];
+  }
+
+  // Add status filter if provided
+  if (status) {
+    query.status = status;
+  }
+
+  // Determine sort field and order
+  const sortOptions = {};
+  if (sortBy === "upvotes") {
+    sortOptions.upvotes = sortOrder === "asc" ? 1 : -1;
+  } else if (sortBy === "createdAt") {
+    sortOptions.createdAt = sortOrder === "asc" ? 1 : -1;
+  } else {
+    sortOptions.createdAt = -1; // Default sort by newest
+  }
+
+  // Count total issues matching the query
+  const totalIssues = await Issue.countDocuments(query);
+  const totalPages = Math.ceil(totalIssues / limitInt);
+
+  // Fetch issues
+  const issues = await Issue.find(query)
+    .populate("service", "serviceName logo")
+    .select("title description status upvotes createdAt updatedAt service")
+    .sort(sortOptions)
+    .skip(skip)
+    .limit(limitInt);
+
+  // Calculate pagination info
+  const paginationInfo = {
+    totalIssues,
+    totalPages,
+    currentPage: pageInt,
+    hasNextPage: pageInt < totalPages,
+    hasPrevPage: pageInt > 1
+  };
+
+  return res.status(200).json(
+    new ApiResponse(
+      200, 
+      { 
+        issues, 
+        pagination: paginationInfo,
+        user: {
+          _id: user._id,
+          username: user.username,
+          fullname: user.fullname
+        }
+      }, 
+      "User issues retrieved successfully."
+    )
+  );
+});
+
+/** ✅ Get All Feedbacks Created By User with Search and Sorting */
+const getUserFeedbacks = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { 
+    page = 1, 
+    limit = 10, 
+    search = "", 
+    sortBy = "createdAt", 
+    sortOrder = "desc",
+    rating
+  } = req.query;
+
+  // Verify user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  // Ensure only the user or admins can see the user's feedbacks
+  if (req.user._id.toString() !== userId && req.user.role !== "admin") {
+    throw new ApiError(403, "Unauthorized: You can only view your own feedbacks.");
+  }
+
+  const pageInt = parseInt(page);
+  const limitInt = parseInt(limit);
+  const skip = (pageInt - 1) * limitInt;
+
+  // Build the query
+  const query = { openedBy: userId };
+
+  // Add search functionality
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } }
+    ];
+  }
+
+  // Add rating filter if provided
+  if (rating) {
+    query.rating = parseInt(rating);
+  }
+
+  // Determine sort field and order
+  const sortOptions = {};
+  if (sortBy === "rating") {
+    sortOptions.rating = sortOrder === "asc" ? 1 : -1;
+  } else if (sortBy === "upvotes") {
+    sortOptions.upvotes = sortOrder === "asc" ? 1 : -1;
+  } else if (sortBy === "createdAt") {
+    sortOptions.createdAt = sortOrder === "asc" ? 1 : -1;
+  } else {
+    sortOptions.createdAt = -1; // Default sort by newest
+  }
+
+  // Count total feedbacks matching the query
+  const totalFeedbacks = await Feedback.countDocuments(query);
+  const totalPages = Math.ceil(totalFeedbacks / limitInt);
+
+  // Fetch feedbacks
+  const feedbacks = await Feedback.find(query)
+    .populate("service", "serviceName logo")
+    .select("title description rating upvotes createdAt updatedAt service")
+    .sort(sortOptions)
+    .skip(skip)
+    .limit(limitInt);
+
+  // Calculate pagination info
+  const paginationInfo = {
+    totalFeedbacks,
+    totalPages,
+    currentPage: pageInt,
+    hasNextPage: pageInt < totalPages,
+    hasPrevPage: pageInt > 1
+  };
+
+  return res.status(200).json(
+    new ApiResponse(
+      200, 
+      { 
+        feedbacks, 
+        pagination: paginationInfo,
+        user: {
+          _id: user._id,
+          username: user.username,
+          fullname: user.fullname
+        }
+      }, 
+      "User feedbacks retrieved successfully."
+    )
+  );
+});
+
+// Don't forget to add these to your exports
 export { 
   registerUser, 
   loginUser, 
@@ -309,5 +507,7 @@ export {
   refreshAccessToken, 
   updateUser, 
   getUserProfile, 
-  getUserUpvotedServices 
+  getUserUpvotedServices,
+  getUserIssues,
+  getUserFeedbacks
 };

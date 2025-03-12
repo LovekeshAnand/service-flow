@@ -7,7 +7,8 @@ import {
   MessageSquare, 
   Loader,
   ThumbsUp,
-  X
+  X,
+  List
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAlert } from "../components/AlertProvider";
@@ -326,6 +327,19 @@ const ServiceDetails = () => {
     }
   }, [id]); // Only depend on id
 
+  // Navigation handlers for "See All" buttons
+  const navigateToAllIssues = useCallback(() => {
+    navigateRef.current(`/issues/${id}`);
+  }, [id]);
+
+  const navigateToAllFeedbacks = useCallback(() => {
+    navigateRef.current(`/feedbacks/${id}`);
+  }, [id]);
+
+  // UPDATED: Fixed route for the issues page
+  // Inside ServiceDetails component
+
+  // UPDATED: Fix route for the issues page
   const handleSubmitIssue = useCallback(async (formData) => {
     setSubmitting(true);
     try {
@@ -341,8 +355,8 @@ const ServiceDetails = () => {
       if (isMounted.current) {
         showAlertRef.current("Success", "Issue reported successfully", "success");
         setIssueFormOpen(false);
-        // Redirect to issues list for this service
-        navigateRef.current(`/service/${id}/issues`);
+        // FIXED: Changed the navigation path to point to the new issues route
+        navigateRef.current(`/issues/${id}`);
       }
     } catch (err) {
       if (isMounted.current) {
@@ -353,8 +367,9 @@ const ServiceDetails = () => {
         setSubmitting(false);
       }
     }
-  }, [id]); // Only depend on id
+  }, [id]);
 
+  // UPDATED: Fix route for the feedbacks page
   const handleSubmitFeedback = useCallback(async (formData) => {
     setSubmitting(true);
     try {
@@ -370,8 +385,8 @@ const ServiceDetails = () => {
       if (isMounted.current) {
         showAlertRef.current("Success", "Feedback submitted successfully", "success");
         setFeedbackFormOpen(false);
-        // Redirect to feedbacks list for this service
-        navigateRef.current(`/service/${id}/feedbacks`);
+        // FIXED: Changed the navigation path to point to the new feedbacks route
+        navigateRef.current(`/feedbacks/${id}`);
       }
     } catch (err) {
       if (isMounted.current) {
@@ -382,7 +397,7 @@ const ServiceDetails = () => {
         setSubmitting(false);
       }
     }
-  }, [id]); // Only depend on id
+  }, [id]);
 
   const tryAgain = useCallback(() => {
     setLoading(true);
@@ -433,8 +448,31 @@ const ServiceDetails = () => {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Details</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">View service information and report issues</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Details</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">View service information and report issues</p>
+            </div>
+            
+            {/* NEW: See All Issues and Feedbacks buttons */}
+            <div className="flex space-x-4">
+              <Button
+                onClick={navigateToAllIssues}
+                className="bg-violet-600 hover:bg-violet-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+              >
+                <AlertCircle size={18} />
+                <span>See All Issues</span>
+              </Button>
+              
+              <Button
+                onClick={navigateToAllFeedbacks}
+                className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+              >
+                <MessageSquare size={18} />
+                <span>See All Feedbacks</span>
+              </Button>
+            </div>
+          </div>
         </motion.div>
         
         {/* Service Header */}

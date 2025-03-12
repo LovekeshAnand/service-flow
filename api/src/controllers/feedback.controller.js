@@ -238,6 +238,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 });
 
 /** ✅ 11. Upvote a Feedback */
+/** ✅ 11. Upvote a Feedback */
 const upvoteFeedback = asyncHandler(async (req, res) => {
     const { feedbackId } = req.params;
     const userId = req.user._id;
@@ -248,7 +249,11 @@ const upvoteFeedback = asyncHandler(async (req, res) => {
     }
 
     // Check if the user has already voted
-    const existingVote = await Vote.findOne({ user: userId, feedback: feedbackId });
+    const existingVote = await Vote.findOne({ 
+        user: userId, 
+        targetId: feedbackId,
+        targetType: "Feedback" 
+    });
 
     if (existingVote) {
         if (existingVote.voteType === "upvote") {
@@ -276,7 +281,12 @@ const upvoteFeedback = asyncHandler(async (req, res) => {
         }
     } else {
         // Create a new upvote
-        await Vote.create({ user: userId, feedback: feedbackId, voteType: "upvote" });
+        await Vote.create({ 
+            user: userId, 
+            targetId: feedbackId,
+            targetType: "Feedback",
+            voteType: "upvote" 
+        });
         
         // Update the feedback vote counts
         feedback.upvotes += 1;
@@ -298,7 +308,11 @@ const downvoteFeedback = asyncHandler(async (req, res) => {
     }
 
     // Check if the user has already voted
-    const existingVote = await Vote.findOne({ user: userId, feedback: feedbackId });
+    const existingVote = await Vote.findOne({ 
+        user: userId, 
+        targetId: feedbackId,
+        targetType: "Feedback" 
+    });
 
     if (existingVote) {
         if (existingVote.voteType === "downvote") {
@@ -326,7 +340,12 @@ const downvoteFeedback = asyncHandler(async (req, res) => {
         }
     } else {
         // Create a new downvote
-        await Vote.create({ user: userId, feedback: feedbackId, voteType: "downvote" });
+        await Vote.create({ 
+            user: userId, 
+            targetId: feedbackId,
+            targetType: "Feedback",
+            voteType: "downvote" 
+        });
         
         // Update the feedback vote counts
         feedback.downvotes += 1;
