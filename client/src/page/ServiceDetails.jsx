@@ -1,49 +1,24 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
-import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AlertCircle, MessageSquare, Package, Wrench, FileText, X } from "lucide-react";
+import { 
+  AlertCircle, 
+  MessageSquare, 
+  Loader,
+  ThumbsUp,
+  X
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAlert } from "../components/AlertProvider";
+import Header from "@/components/Header";
+import StatCard from "@/components/StatCard";
+import IssuesLineChart from "@/components/LineChart";
 
 // Updated base URL to match your backend structure
 const API_BASE_URL = "http://localhost:8000/api/v1";
 
-// Animated counter component
-const CounterCard = ({ icon, label, count, color }) => {
-  const [counter, setCounter] = useState(0);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (counter < count) {
-        setCounter(prev => Math.min(prev + 1, count));
-      }
-    }, 50);
-    
-    return () => clearTimeout(timer);
-  }, [counter, count]);
-  
-  return (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className={`p-8 rounded-xl shadow-lg ${color} text-white h-full`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xl font-medium opacity-90">{label}</p>
-          <h3 className="text-5xl font-bold mt-3">{counter}</h3>
-        </div>
-        <div className="p-6 bg-white bg-opacity-20 rounded-full">
-          {icon}
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// Reusable form component for bug, issue and feedback submission
+// Reusable form component for issue and feedback submission
 const SubmissionForm = ({ 
   isOpen, 
   onClose, 
@@ -162,35 +137,101 @@ const ServiceDetails = () => {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
   const [service, setService] = useState(null);
-  const [serviceStats, setServiceStats] = useState({ bugs: 0, issues: 0, feedbacks: 0 });
+  const [activityData, setActivityData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
   // State for form modals
-  const [bugFormOpen, setBugFormOpen] = useState(false);
   const [issueFormOpen, setIssueFormOpen] = useState(false);
   const [feedbackFormOpen, setFeedbackFormOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isUpvoting, setIsUpvoting] = useState(false);
   
   // Ref to track if component is mounted
   const isMounted = useRef(true);
-  // Ref to track if data has already been fetched
-  const dataFetchedRef = useRef(false);
   
-  // Fetch service details function wrapped in useCallback to prevent recreation on every render
+  // Ref to store the current showAlert function
+  const showAlertRef = useRef(showAlert);
+  
+  // Update the ref whenever showAlert changes
+  useEffect(() => {
+    showAlertRef.current = showAlert;
+  }, [showAlert]);
+  
+  // Store navigate in ref to avoid dependency issues
+  const navigateRef = useRef(navigate);
+  
+  // Update navigate ref when it changes
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+  
+  // Generate service activity data as a fallback
+  const generateServiceActivityData = useCallback((serviceData) => {
+    // Calculate days since creation
+    const createdAt = new Date(serviceData.createdAt || new Date());
+    const now = new Date();
+    const daysSinceCreation = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+    
+    // Generate data points based on real timestamps
+    const data = [];
+    let baseUpvotes = serviceData.upvotes || 0;
+    let baseIssues = serviceData.issues || 0;
+    let baseFeedbacks = serviceData.feedbacks || 0;
+    
+    // Create at least 7 data points, or one per day since creation (whichever is greater)
+    const numPoints = Math.max(7, Math.min(daysSinceCreation, 30)); // Cap at 30 points
+    
+    for (let i = numPoints - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      
+      // Distribute metrics over time with more recent days having more activity
+      const dailyUpvotes = i === 0 ? baseUpvotes : Math.max(0, Math.floor(baseUpvotes * (i / numPoints)));
+      const dailyIssues = i === 0 ? baseIssues : Math.max(0, Math.floor(baseIssues * (i / numPoints)));
+      const dailyFeedbacks = i === 0 ? baseFeedbacks : Math.max(0, Math.floor(baseFeedbacks * (i / numPoints)));
+      
+      data.push({
+        date: date.toISOString().split('T')[0],
+        upvotes: dailyUpvotes,
+        issues: dailyIssues,
+        feedbacks: dailyFeedbacks,
+        activity: Math.floor(Math.random() * 10) + 1, // Random activity metric
+      });
+    }
+    
+    return data;
+  }, []);
+  
+  // Memoize fetchServiceDetails with useCallback and proper dependencies
   const fetchServiceDetails = useCallback(async () => {
     if (!id) return;
     
     try {
-      // Updated endpoint to get service details
-      const response = await axios.get(`${API_BASE_URL}/services/${id}`);
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('token');
+      
+      // Fetch both service details and activity data in parallel
+      const [serviceResponse, activityResponse] = await Promise.all([
+        // Fetch service details
+        axios.get(`${API_BASE_URL}/services/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }),
+        // Fetch service activity data
+        axios.get(`${API_BASE_URL}/services/${id}/activity`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }).catch(() => ({ data: { data: null } })) // Handle if activity endpoint fails
+      ]);
 
       // Check if component is still mounted before updating state
       if (!isMounted.current) return;
       
       // Handle the specific API response structure
-      if (response.data && response.data.data) {
-        const serviceData = response.data.data;
+      if (serviceResponse.data && serviceResponse.data.data) {
+        const serviceData = serviceResponse.data.data;
         
         // Set service information
         setService({
@@ -198,25 +239,29 @@ const ServiceDetails = () => {
           email: serviceData.email || "",
           description: serviceData.description || "",
           serviceLink: serviceData.serviceLink || "",
-          logo: serviceData.logo || ""
+          logo: serviceData.logo || "",
+          upvotes: serviceData.upvotes || 0,
+          issues: serviceData.issues || 0,
+          feedbacks: serviceData.feedbacks || 0,
+          createdAt: serviceData.createdAt || new Date().toISOString(),
         });
         
-        // Set service stats
-        setServiceStats({
-          bugs: serviceData.bugs || 0,
-          issues: serviceData.issues || 0,
-          feedbacks: serviceData.feedbacks || 0
-        });
+        // Set activity data if available or generate it
+        if (activityResponse.data && activityResponse.data.data) {
+          setActivityData(activityResponse.data.data);
+        } else {
+          setActivityData(generateServiceActivityData(serviceData));
+        }
         
         // Show success alert for data loading
         if (isMounted.current) {
-          showAlert("Service Details", "Service information loaded successfully", "success");
+          showAlertRef.current("Service Details", "Service information loaded successfully", "success");
         }
       } else {
         // Fallback to old structure or handle error
         setError("Invalid data structure received from server");
         if (isMounted.current) {
-          showAlert("Data Error", "Invalid data structure received from server", "error");
+          showAlertRef.current("Data Error", "Invalid data structure received from server", "error");
         }
       }
     } catch (err) {
@@ -226,7 +271,7 @@ const ServiceDetails = () => {
       setError("Failed to load service details");
       console.error("Service fetch error:", err.response?.data || err.message);
       if (isMounted.current) {
-        showAlert("Error", "Failed to load service details", "error");
+        showAlertRef.current("Error", "Failed to load service details", "error");
       }
     } finally {
       // Check if component is still mounted before updating state
@@ -234,62 +279,59 @@ const ServiceDetails = () => {
         setLoading(false);
       }
     }
-  }, [id]); // Only depend on id, not showAlert
-
+  }, [id, generateServiceActivityData]); // Only depend on id and the stable generateServiceActivityData
+  
+  // Fetch service details on mount
   useEffect(() => {
     // Set isMounted to true when component mounts
     isMounted.current = true;
     
-    // Only fetch if the data hasn't been fetched yet or if the id changes
-    if (!dataFetchedRef.current || id) {
-      setLoading(true);
-      setError(null);
-      fetchServiceDetails();
-      dataFetchedRef.current = true;
-    }
+    // Only fetch data when component mounts
+    fetchServiceDetails();
     
     // Cleanup function when component unmounts
     return () => {
       isMounted.current = false;
     };
-  }, [id, fetchServiceDetails]); // Keep both dependencies
+  }, [fetchServiceDetails]); // Only run when fetchServiceDetails changes
 
-  // Memoize submission handlers to prevent recreation on every render
-  const handleSubmitBug = useCallback(async (formData) => {
-    setSubmitting(true);
+  // Handle upvote service
+  const handleUpvoteService = useCallback(async () => {
     try {
+      setIsUpvoting(true);
       const token = localStorage.getItem('token');
       
-      await axios.post(`${API_BASE_URL}/bugs/service/${id}`, formData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+      await axios.post(`${API_BASE_URL}/services/${id}/upvote`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       
+      // Update local state to reflect the upvote
       if (isMounted.current) {
-        showAlert("Success", "Bug reported successfully", "success");
-        setBugFormOpen(false);
-        // Redirect to bugs list for this service
-        navigate(`/${id}/bugs`);
+        setService(prevService => ({
+          ...prevService,
+          upvotes: prevService.upvotes + 1
+        }));
+        
+        showAlertRef.current("Success", "Service upvoted successfully", "success");
       }
     } catch (err) {
       if (isMounted.current) {
-        showAlert("Error", err.response?.data?.message || "Failed to report bug", "error");
+        showAlertRef.current("Error", err.response?.data?.message || "Upvote failed", "error");
       }
     } finally {
       if (isMounted.current) {
-        setSubmitting(false);
+        setIsUpvoting(false);
       }
     }
-  }, [id, navigate, showAlert]);
+  }, [id]); // Only depend on id
 
   const handleSubmitIssue = useCallback(async (formData) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       
-      await axios.post(`${API_BASE_URL}/issues/service/${id}`, formData, {
+      await axios.post(`${API_BASE_URL}/issues/service/${id}/issues`, formData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -297,28 +339,28 @@ const ServiceDetails = () => {
       });
       
       if (isMounted.current) {
-        showAlert("Success", "Issue reported successfully", "success");
+        showAlertRef.current("Success", "Issue reported successfully", "success");
         setIssueFormOpen(false);
         // Redirect to issues list for this service
-        navigate(`/${id}/issues`);
+        navigateRef.current(`/service/${id}/issues`);
       }
     } catch (err) {
       if (isMounted.current) {
-        showAlert("Error", err.response?.data?.message || "Failed to report issue", "error");
+        showAlertRef.current("Error", err.response?.data?.message || "Failed to report issue", "error");
       }
     } finally {
       if (isMounted.current) {
         setSubmitting(false);
       }
     }
-  }, [id, navigate, showAlert]);
+  }, [id]); // Only depend on id
 
   const handleSubmitFeedback = useCallback(async (formData) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       
-      await axios.post(`${API_BASE_URL}/feedbacks/service/${id}`, formData, {
+      await axios.post(`${API_BASE_URL}/feedbacks/service/${id}/feedbacks`, formData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -326,161 +368,177 @@ const ServiceDetails = () => {
       });
       
       if (isMounted.current) {
-        showAlert("Success", "Feedback submitted successfully", "success");
+        showAlertRef.current("Success", "Feedback submitted successfully", "success");
         setFeedbackFormOpen(false);
         // Redirect to feedbacks list for this service
-        navigate(`/${id}/feedbacks`);
+        navigateRef.current(`/service/${id}/feedbacks`);
       }
     } catch (err) {
       if (isMounted.current) {
-        showAlert("Error", err.response?.data?.message || "Failed to submit feedback", "error");
+        showAlertRef.current("Error", err.response?.data?.message || "Failed to submit feedback", "error");
       }
     } finally {
       if (isMounted.current) {
         setSubmitting(false);
       }
     }
-  }, [id, navigate, showAlert]);
+  }, [id]); // Only depend on id
+
+  const tryAgain = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    // Call the memoized fetch function directly
+    fetchServiceDetails();
+    // Show alert using the ref
+    showAlertRef.current("Retrying", "Attempting to reload service details", "info");
+  }, [fetchServiceDetails]); // Only depend on fetchServiceDetails
 
   if (loading) return (
-    <div className="flex justify-center items-center h-screen pt-24">
-      <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-green-600"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Loader className="h-12 w-12 text-blue-500 animate-spin mb-4" />
+      <p className="text-gray-600 dark:text-gray-300 animate-pulse">Loading service details...</p>
     </div>
   );
   
   if (error) return (
-    <div className="text-center p-12 pt-32">
-      <AlertCircle size={64} className="mx-auto text-red-500 mb-6" />
-      <p className="text-2xl font-medium text-red-500">{error}</p>
-      <Button 
-        onClick={() => {
-          setLoading(true);
-          setError(null);
-          // Try to fetch the data again
-          fetchServiceDetails();
-          showAlert("Retrying", "Attempting to reload service details", "info");
-        }} 
-        className="mt-6 bg-green-600 hover:bg-green-700 text-lg py-3 px-6"
-      >
-        Try Again
-      </Button>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+      <div className="max-w-md w-full text-center">
+        <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Could not load service details</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+        <Button 
+          onClick={tryAgain} 
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl"
+        >
+          Try Again
+        </Button>
+      </div>
     </div>
   );
 
-  return (
-    <div className="max-w-6xl mx-auto p-6 md:p-8 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl shadow-xl text-gray-900 dark:text-white">
-      {/* Service Header */}
-      <div className="relative overflow-hidden bg-white dark:bg-gray-800 p-8 md:p-10 rounded-xl shadow-md mb-10 mt-14">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-green-100 dark:bg-green-900 opacity-20 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-100 dark:bg-green-900 opacity-20 rounded-full -ml-16 -mb-16"></div>
-        
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
-          {/* Logo from backend */}
-          <div className="relative w-40 h-40 flex items-center justify-center">
-            <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-green-600 shadow-xl">
-              {service?.logo ? (
-                <img 
-                  src={service.logo} 
-                  alt={`${service.serviceName} logo`} 
-                  className="w-full h-full object-cover" 
-                />
-              ) : (
-                <div className="bg-green-100 w-full h-full flex items-center justify-center">
-                  <Package size={64} className="text-green-600" />
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-4xl md:text-5xl font-bold text-green-700 dark:text-green-500">
-              {service?.serviceName || "Service"}
-            </h2>
-            <div className="mt-6 space-y-3">
-              <p className="flex items-center justify-center md:justify-start gap-3 text-xl">
-                <span className="font-medium text-gray-600 dark:text-gray-400">Email:</span> 
-                <span className="font-semibold">{service?.email}</span>
-              </p>
-              <p className="flex items-center justify-center md:justify-start gap-3 text-xl">
-                <span className="font-medium text-gray-600 dark:text-gray-400">Service Link:</span> 
-                <a href={service?.serviceLink} target="_blank" rel="noopener noreferrer" className="font-semibold text-green-600 hover:underline">
-                  {service?.serviceLink}
-                </a>
-              </p>
-              <div className="mt-4">
-                <p className="text-xl font-medium text-gray-600 dark:text-gray-400 mb-2">Description:</p>
-                <p className="text-lg leading-relaxed bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  {service?.description || "No description available."}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-10">
-        <CounterCard 
-          icon={<Wrench size={32} className="text-white" />} 
-          label="Bugs Received" 
-          count={serviceStats.bugs || 0} 
-          color="bg-gradient-to-br from-blue-500 to-blue-700"
-        />
-        <CounterCard 
-          icon={<AlertCircle size={32} className="text-white" />} 
-          label="Issues Received" 
-          count={serviceStats.issues || 0} 
-          color="bg-gradient-to-br from-amber-500 to-amber-700"
-        />
-        <CounterCard 
-          icon={<FileText size={32} className="text-white" />} 
-          label="Feedbacks Received" 
-          count={serviceStats.feedbacks || 0} 
-          color="bg-gradient-to-br from-purple-500 to-purple-700"
-        />
-      </div>
+  // Enhanced chart data with all metrics
+  const chartData = {
+    serviceData: activityData,
+    serviceName: service?.serviceName || "",
+    metrics: ['upvotes', 'feedbacks', 'issues']
+  };
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Button 
-          onClick={() => setBugFormOpen(true)} 
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+        {/* Dashboard Header with Animation */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
         >
-          <Wrench size={24} />
-          <span>Report Bug</span>
-        </Button>
-        <Button 
-          onClick={() => setIssueFormOpen(true)}
-          className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Details</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">View service information and report issues</p>
+        </motion.div>
+        
+        {/* Service Header */}
+        {service && (
+          <div className="mb-8">
+            <Header 
+              serviceName={service.serviceName}
+              logo={service.logo}
+              email={service.email}
+              serviceLink={service.serviceLink}
+              description={service.description}
+            />
+          </div>
+        )}
+        
+        {/* Stats Grid */}
+        {service && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <StatCard 
+              title="Upvotes" 
+              value={service.upvotes} 
+              icon={ThumbsUp} 
+              color="linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)" // Indigo gradient
+              delay={0.2}
+            />
+            <StatCard 
+              title="Issues" 
+              value={service.issues} 
+              icon={AlertCircle} 
+              color="linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)" // Purple gradient
+              delay={0.3}
+            />
+            <StatCard 
+              title="Feedbacks" 
+              value={service.feedbacks} 
+              icon={MessageSquare} 
+              color="linear-gradient(135deg, #2DD4BF 0%, #0D9488 100%)" // Teal gradient
+              delay={0.4}
+            />
+          </div>
+        )}
+        
+        {/* Enhanced Chart Section */}
+        {service && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8"
+          >
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Service Activity Timeline</h2>
+            <div className="h-80">
+              <IssuesLineChart data={chartData} />
+            </div>
+          </motion.div>
+        )}
+
+        {/* Action Buttons */}
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
-          <AlertCircle size={24} />
-          <span>Report Issue</span>
-        </Button>
-        <Button 
-          onClick={() => setFeedbackFormOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
-        >
-          <MessageSquare size={24} />
-          <span>Give Feedback</span>
-        </Button>
+          <Button 
+            onClick={handleUpvoteService}
+            disabled={isUpvoting}
+            className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+          >
+            {isUpvoting ? (
+              <>
+                <Loader className="h-5 w-5 animate-spin" />
+                <span>Upvoting...</span>
+              </>
+            ) : (
+              <>
+                <ThumbsUp size={24} />
+                <span>Upvote Service</span>
+              </>
+            )}
+          </Button>
+          <Button 
+            onClick={() => setIssueFormOpen(true)}
+            className="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+          >
+            <AlertCircle size={24} />
+            <span>Report Issue</span>
+          </Button>
+          <Button 
+            onClick={() => setFeedbackFormOpen(true)}
+            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+          >
+            <MessageSquare size={24} />
+            <span>Give Feedback</span>
+          </Button>
+        </motion.div>
       </div>
       
       {/* Form Modals */}
       <SubmissionForm 
-        isOpen={bugFormOpen}
-        onClose={() => setBugFormOpen(false)}
-        title="Report a Bug"
-        color="bg-blue-600"
-        icon={<Wrench size={24} className="text-white" />}
-        onSubmit={handleSubmitBug}
-        isSubmitting={submitting}
-      />
-      
-      <SubmissionForm 
         isOpen={issueFormOpen}
         onClose={() => setIssueFormOpen(false)}
         title="Report an Issue"
-        color="bg-amber-600"
+        color="bg-violet-600"
         icon={<AlertCircle size={24} className="text-white" />}
         onSubmit={handleSubmitIssue}
         isSubmitting={submitting}
@@ -490,7 +548,7 @@ const ServiceDetails = () => {
         isOpen={feedbackFormOpen}
         onClose={() => setFeedbackFormOpen(false)}
         title="Give Feedback"
-        color="bg-purple-600"
+        color="bg-teal-600"
         icon={<MessageSquare size={24} className="text-white" />}
         onSubmit={handleSubmitFeedback}
         isSubmitting={submitting}

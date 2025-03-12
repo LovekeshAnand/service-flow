@@ -2,51 +2,54 @@ import mongoose, {Schema} from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-const serviceSchema = new Schema ({
+const serviceSchema = new Schema({
     serviceName: {
         type: String,
         required: true,
         trim: true
     },
-
+    
     cloudinaryLogoId: {
         type: String,
         required: true
     },
-
+    
     serviceLink: {
         type: String,
         required: true
     },
-
+    
+    upvotes: {
+        type: Number,
+        default: 0
+    },
+    
     email: {
         type: String,
         required: true,
         unique: true,
         trim: true
     },
-
+    
     password: {
         type: String,
         required: [true, 'Password is required']
     },
-
+    
     description: {
         type: String,
         required: true
     },
-
+    
     logo: {
         type: String,
         required: true
     },
-
-    refreshToken:  {
+    
+    refreshToken: {
         type: String
     }
-
-},
-{
+}, {
     timestamps: true
 });
 
@@ -66,7 +69,7 @@ serviceSchema.methods.generateAccessToken = function(){
         {
             _id: this._id,
             email: this.email,
-            name: this.name
+            name: this.serviceName
         },
         process.env.ACCESS_TOKEN_SECRET,
         {

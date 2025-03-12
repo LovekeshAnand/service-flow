@@ -4,11 +4,12 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import { Issue } from "../models/issueSchema.model.js";
 import { Comment } from "../models/commentSchema.model.js";
 import { Like } from "../models/likeSchema.model.js";
+import { Vote } from "../models/voteSchema.model.js";
 
 /** ✅ 1. Get All Issues for a Specific Service */
 const getAllIssuesForService = asyncHandler(async (req, res) => {
     const { serviceId } = req.params;
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const { page = 1, limit = 10, search = "", sortBy = "votes" } = req.query;
 
     const query = {
         service: serviceId,
@@ -21,11 +22,21 @@ const getAllIssuesForService = asyncHandler(async (req, res) => {
     const totalIssues = await Issue.countDocuments(query);
     const totalPages = Math.ceil(totalIssues / limit);
 
+    // Determine the sort order
+    let sortOrder = {};
+    if (sortBy === "votes") {
+        sortOrder = { netVotes: -1, createdAt: -1 }; // Sort by votes, then by date
+    } else if (sortBy === "date") {
+        sortOrder = { createdAt: -1 }; // Sort by date only
+    } else {
+        sortOrder = { netVotes: -1, createdAt: -1 }; // Default sort
+    }
+
     const issues = await Issue.find(query)
         .populate("openedBy", "username")
         .skip((page - 1) * limit)
         .limit(parseInt(limit))
-        .sort({ createdAt: -1 });
+        .sort(sortOrder);
 
     return res.status(200).json(new ApiResponse(200, { issues, totalPages, currentPage: parseInt(page) }, "Issues retrieved successfully."));
 });
@@ -33,6 +44,7 @@ const getAllIssuesForService = asyncHandler(async (req, res) => {
 /** ✅ 2. Get a Single Issue with Comments & Replies */
 const getIssueById = asyncHandler(async (req, res) => {
     const { serviceId, issueId } = req.params;
+    const userId = req.user?._id;
 
     const issue = await Issue.findOne({ _id: issueId, service: serviceId })
         .populate("openedBy", "username")
@@ -48,7 +60,23 @@ const getIssueById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Issue not found.");
     }
 
-    return res.status(200).json(new ApiResponse(200, issue, "Issue details retrieved successfully."));
+    // Get the current user's vote on this issue, if any
+    let userVote = null;
+    if (userId) {
+        userVote = await Vote.findOne({ 
+            user: userId, 
+            targetId: issueId,
+            targetType: "Issue" 
+        });
+    }
+
+    // Add userVote to the response
+    const responseData = {
+        ...issue.toObject(),
+        userVote: userVote ? userVote.voteType : null
+    };
+
+    return res.status(200).json(new ApiResponse(200, responseData, "Issue details retrieved successfully."));
 });
 
 /** ✅ 3. Create an Issue for a Specific Service */
@@ -61,7 +89,15 @@ const createIssue = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Title and description are required.");
     }
 
-    const issue = await Issue.create({ title, description, service: serviceId, openedBy: userId });
+    const issue = await Issue.create({ 
+        title, 
+        description, 
+        service: serviceId, 
+        openedBy: userId,
+        upvotes: 0,
+        downvotes: 0,
+        netVotes: 0
+    });
 
     return res.status(201).json(new ApiResponse(201, issue, "Issue reported successfully."));
 });
@@ -81,6 +117,13 @@ const deleteIssue = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Unauthorized: You can only delete your own issues.");
     }
 
+    // Delete all associated votes
+    await Vote.deleteMany({ 
+        targetId: issueId,
+        targetType: "Issue"
+    });
+    
+    // Delete issue and associated comments
     await Comment.deleteMany({ _id: { $in: issue.comments } });
     await issue.deleteOne();
 
@@ -207,15 +250,145 @@ const deleteComment = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, {}, "Comment deleted successfully."));
 });
 
+/** ✅ 11. Upvote an Issue */
+const upvoteIssue = asyncHandler(async (req, res) => {
+    const { issueId } = req.params;
+    const userId = req.user._id;
+
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+        throw new ApiError(404, "Issue not found.");
+    }
+
+    // Check if the user has already voted
+    const existingVote = await Vote.findOne({ 
+        user: userId, 
+        targetId: issueId,
+        targetType: "Issue" 
+    });
+
+    if (existingVote) {
+        if (existingVote.voteType === "upvote") {
+            // User is removing their upvote
+            await Vote.findByIdAndDelete(existingVote._id);
+            
+            // Update the issue vote counts
+            issue.upvotes -= 1;
+            issue.netVotes -= 1;
+            await issue.save();
+            
+            return res.status(200).json(new ApiResponse(200, { voteType: null }, "Upvote removed."));
+        } else {
+            // User is changing from downvote to upvote
+            existingVote.voteType = "upvote";
+            await existingVote.save();
+            
+            // Update the issue vote counts
+            issue.upvotes += 1;
+            issue.downvotes -= 1;
+            issue.netVotes += 2; // +1 for adding upvote, +1 for removing downvote
+            await issue.save();
+            
+            return res.status(200).json(new ApiResponse(200, { voteType: "upvote" }, "Vote changed to upvote."));
+        }
+    } else {
+        // Create a new upvote
+        await Vote.create({ 
+            user: userId, 
+            targetId: issueId,
+            targetType: "Issue",
+            voteType: "upvote" 
+        });
+        
+        // Update the issue vote counts
+        issue.upvotes += 1;
+        issue.netVotes += 1;
+        await issue.save();
+        
+        return res.status(201).json(new ApiResponse(201, { voteType: "upvote" }, "Issue upvoted."));
+    }
+});
+
+/** ✅ 12. Downvote an Issue */
+const downvoteIssue = asyncHandler(async (req, res) => {
+    const { issueId } = req.params;
+    const userId = req.user._id;
+
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+        throw new ApiError(404, "Issue not found.");
+    }
+
+    // Check if the user has already voted
+    const existingVote = await Vote.findOne({ 
+        user: userId, 
+        targetId: issueId,
+        targetType: "Issue" 
+    });
+
+    if (existingVote) {
+        if (existingVote.voteType === "downvote") {
+            // User is removing their downvote
+            await Vote.findByIdAndDelete(existingVote._id);
+            
+            // Update the issue vote counts
+            issue.downvotes -= 1;
+            issue.netVotes += 1;
+            await issue.save();
+            
+            return res.status(200).json(new ApiResponse(200, { voteType: null }, "Downvote removed."));
+        } else {
+            // User is changing from upvote to downvote
+            existingVote.voteType = "downvote";
+            await existingVote.save();
+            
+            // Update the issue vote counts
+            issue.upvotes -= 1;
+            issue.downvotes += 1;
+            issue.netVotes -= 2; // -1 for removing upvote, -1 for adding
+            await issue.save();
+            
+            return res.status(200).json(new ApiResponse(200, { voteType: "downvote" }, "Vote changed to downvote."));
+        }
+    } else {
+        // Create a new downvote
+        await Vote.create({ user: userId, issue: issueId, voteType: "downvote" });
+        
+        // Update the feedback vote counts
+        issue.downvotes += 1;
+        issue.netVotes -= 1;
+        await issue.save();
+        
+        return res.status(201).json(new ApiResponse(201, { voteType: "downvote" }, "issue downvoted."));
+    }
+});
+
+/** ✅ 13. Get User's Vote on a Feedback */
+const getUserVote = asyncHandler(async (req, res) => {
+    const { issueId } = req.params;
+    const userId = req.user._id;
+
+    const vote = await Vote.findOne({ user: userId, issue: issueId });
+    
+    if (!vote) {
+        return res.status(200).json(new ApiResponse(200, { voteType: null }, "User has not voted on this issue."));
+    }
+    
+    return res.status(200).json(new ApiResponse(200, { voteType: vote.voteType }, "User's vote retrieved successfully."));
+});
+
 export {
     getAllIssuesForService,
     getIssueById,
     createIssue,
-    deleteIssue, 
+    deleteIssue,
     addComment,
     replyToComment,
     toggleCommentLike,
-    toggleReplyLike, 
+    toggleReplyLike,
     updateComment,
-    deleteComment
-};
+    deleteComment,
+    upvoteIssue,
+    downvoteIssue,
+    getUserVote
+}

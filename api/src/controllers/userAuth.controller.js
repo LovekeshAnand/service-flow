@@ -2,9 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { User } from "../models/userSchema.model.js";
-import { Bug } from "../models/bugSchema.model.js";
 import { Feedback } from "../models/feedbackSchema.model.js";
 import { Issue } from "../models/issueSchema.model.js";
+import { ServiceVote } from "../models/serviceVoteSchema.model.js";
+import { Service } from "../models/serviceSchema.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
@@ -219,16 +220,9 @@ const updateUser = asyncHandler(async (req, res) => {
 
   await user.save();
 
-  // ✅ Fetch Bugs, Feedbacks & Issues with Services
-  const [bugs, feedbacks, issues] = await Promise.all([
-    Bug.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
-    Feedback.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
-    Issue.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
-  ]);
 
   // ✅ Format response to show Service IDs & Counts
   const userStats = {
-    bugs: bugs.map(({ _id, count }) => ({ serviceId: _id, count })),
     feedbacks: feedbacks.map(({ _id, count }) => ({ serviceId: _id, count })),
     issues: issues.map(({ _id, count }) => ({ serviceId: _id, count })),
   };
@@ -236,7 +230,7 @@ const updateUser = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, { user, userStats }, "User updated successfully."));
 });
 
-/** ✅ Get User Profile with Stats (Bugs, Feedbacks, Issues with Services) */
+/** ✅ Get User Profile with Stats (Feedbacks, Issues with Services) */
 const getUserProfile = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
@@ -247,22 +241,73 @@ const getUserProfile = asyncHandler(async (req, res) => {
       throw new ApiError(404, "User not found.");
   }
 
-  // ✅ Fetch Bugs, Feedbacks & Issues along with Services
-  const [bugs, feedbacks, issues] = await Promise.all([
-      Bug.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
+  // ✅ Fetch , Feedbacks & Issues along with Services
+  const [ feedbacks, issues, upvotedServices] = await Promise.all([
       Feedback.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
       Issue.aggregate([{ $match: { openedBy: user._id } }, { $group: { _id: "$service", count: { $sum: 1 } } }]),
+      ServiceVote.find({ user: user._id }).populate('service', 'serviceName logo')
   ]);
 
   // ✅ Format response to show Service IDs & Counts
   const userStats = {
-      bugs: bugs.map(({ _id, count }) => ({ serviceId: _id, count })),
       feedbacks: feedbacks.map(({ _id, count }) => ({ serviceId: _id, count })),
       issues: issues.map(({ _id, count }) => ({ serviceId: _id, count })),
+      upvotedServices: upvotedServices.map(vote => ({
+          serviceId: vote.service._id,
+          serviceName: vote.service.serviceName,
+          logo: vote.service.logo
+      }))
   };
 
   return res.status(200).json(new ApiResponse(200, { user, userStats }, "User profile retrieved successfully."));
 });
 
+/** ✅ Get User Upvoted Services */
+const getUserUpvotedServices = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, updateUser, getUserProfile };
+  // Verify user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  // Ensure only the user can see their upvoted services
+  if (req.user._id.toString() !== userId) {
+    throw new ApiError(403, "Unauthorized: You can only view your own upvoted services.");
+  }
+
+  // Count total upvoted services
+  const totalUpvotedServices = await ServiceVote.countDocuments({ user: userId });
+  const totalPages = Math.ceil(totalUpvotedServices / limit);
+
+  // Get upvoted services with pagination
+  const upvotedServices = await ServiceVote.find({ user: userId })
+    .populate('service', 'serviceName logo description upvotes')
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit))
+    .sort({ createdAt: -1 });
+
+  // Format response
+  const services = upvotedServices.map(vote => vote.service);
+
+  return res.status(200).json(
+    new ApiResponse(200, { 
+      services, 
+      totalPages, 
+      currentPage: parseInt(page),
+      totalUpvotedServices
+    }, "User upvoted services retrieved successfully.")
+  );
+});
+
+export { 
+  registerUser, 
+  loginUser, 
+  logoutUser, 
+  refreshAccessToken, 
+  updateUser, 
+  getUserProfile, 
+  getUserUpvotedServices 
+};

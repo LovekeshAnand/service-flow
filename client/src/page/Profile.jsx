@@ -1,15 +1,15 @@
-import { useEffect, useState, useRef } from "react";
-import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { UserCircle, Bug, AlertCircle, MessageSquare, Edit, X } from "lucide-react";
-import { useAlert } from "../components/AlertProvider"; // Import the useAlert hook
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { UserCircle, AlertCircle, MessageSquare, Edit, X, ThumbsUp } from 'lucide-react';
+import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAlert } from '../components/AlertProvider';
 
 const API_BASE_URL = "http://localhost:8000/api/v1/users";
 
-// Animated counter component with improved styling and larger size
+// Animated counter component
 const CounterCard = ({ icon, label, count, color }) => {
   const [counter, setCounter] = useState(0);
   
@@ -43,7 +43,7 @@ const CounterCard = ({ icon, label, count, color }) => {
   );
 };
 
-// Circular text component with SVG animation
+// Circular text component
 const AnimatedCircularText = ({ text }) => (
   <div className="relative w-40 h-40">
     <svg 
@@ -68,7 +68,7 @@ const AnimatedCircularText = ({ text }) => (
   </div>
 );
 
-// Custom Update Profile Modal
+// Update Profile Modal
 const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   const [oldPassword, setOldPassword] = useState("");
   const [updateData, setUpdateData] = useState({
@@ -79,10 +79,9 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   });
   const [errorMessage, setErrorMessage] = useState("");
   const modalRef = useRef(null);
-  const { showAlert } = useAlert(); // Access the showAlert function
+  const { showAlert } = useAlert();
 
   useEffect(() => {
-    // Reset data when modal opens
     if (isOpen && user) {
       setUpdateData({
         fullname: user.fullname || "",
@@ -95,7 +94,6 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     }
   }, [isOpen, user]);
 
-  // Close modal when clicking outside
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target) && isOpen) {
@@ -104,12 +102,9 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-    };
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isOpen, onClose]);
 
-  // Handle escape key press
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === "Escape" && isOpen) {
@@ -118,9 +113,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     };
 
     document.addEventListener("keydown", handleEscKey);
-    return () => {
-      document.removeEventListener("keydown", handleEscKey);
-    };
+    return () => document.removeEventListener("keydown", handleEscKey);
   }, [isOpen, onClose]);
 
   const handleSubmit = async (e) => {
@@ -133,20 +126,17 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     }
 
     try {
-      await onUpdate({ ...updateData, password: oldPassword });
-      // Show success alert instead of reloading the page
-      showAlert("Profile Updated", "Your profile has been successfully updated.", "success");
+      await onUpdate({ 
+        ...updateData, 
+        password: oldPassword
+      });
+      onClose();
     } catch (error) {
       setErrorMessage(error.message || "Something went wrong. Please try again.");
-      // Show error alert
-      showAlert("Update Failed", error.message || "Something went wrong. Please try again.", "error");
     }
   };
 
   if (!isOpen) return null;
-
-  const inputClasses = "rounded-2xl px-4 py-3 w-full border-2 border-green-100 focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50 outline-none";
-  const buttonClasses = "w-full rounded-2xl py-3 font-medium transition-all duration-200 transform hover:scale-[1.02] focus:scale-[0.98]";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -155,11 +145,9 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
         className="max-w-md w-full p-6 rounded-3xl shadow-2xl bg-white dark:bg-gray-800 relative animate-fadeIn"
         style={{ maxHeight: "90vh", overflowY: "auto" }}
       >
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900 hover:bg-green-100 dark:hover:bg-green-800 transition-colors duration-200 hover:rotate-90 transform"
-          aria-label="Close"
         >
           <X className="h-4 w-4 text-green-700 dark:text-green-300" />
         </button>
@@ -179,106 +167,63 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
           )}
           
           <div className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <Input 
-                name="fullname" 
-                placeholder="Full Name" 
-                value={updateData.fullname} 
-                onChange={(e) => setUpdateData({ ...updateData, fullname: e.target.value })} 
-                className={`${inputClasses} pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
-              />
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
-              </div>
-              <Input 
-                name="username" 
-                placeholder="Username" 
-                value={updateData.username} 
-                onChange={(e) => setUpdateData({ ...updateData, username: e.target.value })} 
-                className={`${inputClasses} pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
-              />
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <Input 
-                type="email" 
-                name="email" 
-                placeholder="Email" 
-                value={updateData.email} 
-                onChange={(e) => setUpdateData({ ...updateData, email: e.target.value })} 
-                className={`${inputClasses} pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
-              />
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                </svg>
-              </div>
-              <Input 
-                type="password" 
-                name="newPassword" 
-                placeholder="New Password (leave empty to keep current)" 
-                value={updateData.newPassword} 
-                onChange={(e) => setUpdateData({ ...updateData, newPassword: e.target.value })} 
-                className={`${inputClasses} pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
-              />
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-                </svg>
-              </div>
-              <Input 
-                type="password"
-                name="currentPassword" 
-                placeholder="Current Password (required)" 
-                value={oldPassword} 
-                onChange={(e) => setOldPassword(e.target.value)} 
-                className={`${inputClasses} pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
-              />
-            </div>
+            <Input 
+              name="fullname"
+              placeholder="Full Name"
+              value={updateData.fullname}
+              onChange={(e) => setUpdateData({ ...updateData, fullname: e.target.value })}
+              className="rounded-xl"
+              required
+            />
+            <Input 
+              name="username"
+              placeholder="Username"
+              value={updateData.username}
+              onChange={(e) => setUpdateData({ ...updateData, username: e.target.value })}
+              className="rounded-xl"
+              required
+            />
+            <Input 
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={updateData.email}
+              onChange={(e) => setUpdateData({ ...updateData, email: e.target.value })}
+              className="rounded-xl"
+              required
+            />
+            <Input 
+              type="password"
+              name="newPassword"
+              placeholder="New Password (leave empty to keep current)"
+              value={updateData.newPassword}
+              onChange={(e) => setUpdateData({ ...updateData, newPassword: e.target.value })}
+              className="rounded-xl"
+            />
+            <Input 
+              type="password"
+              name="currentPassword"
+              placeholder="Current Password (required)"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="rounded-xl"
+              required
+            />
           </div>
           
           <div className="pt-4 space-y-3">
             <Button 
-              type="submit" 
-              className={`${buttonClasses} group`}
-              style={{ backgroundColor: "#16a34a", color: "white" }}
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-3"
             >
-              <span className="flex items-center justify-center">
-                <svg className="w-5 h-5 mr-2 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Save Changes
-              </span>
+              Save Changes
             </Button>
             <Button 
-              type="button" 
-              onClick={onClose} 
-              className={`${buttonClasses} group`}
-              style={{ backgroundColor: "#ef4444", color: "white" }}
+              type="button"
+              onClick={onClose}
+              className="w-full bg-red-600 hover:bg-red-700 text-white rounded-xl py-3"
             >
-              <span className="flex items-center justify-center">
-                <svg className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                Cancel
-              </span>
+              Cancel
             </Button>
           </div>
         </form>
@@ -287,19 +232,148 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   );
 };
 
+// Upvoted Services Component
+const UpvotedServices = ({ userId }) => {
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { showAlert } = useAlert();
+
+  useEffect(() => {
+    const fetchUpvotedServices = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${API_BASE_URL}/${userId}/upvoted-services?page=${currentPage}&limit=6`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+        
+        setServices(response.data.data.services);
+        setTotalPages(response.data.data.totalPages);
+      } catch (err) {
+        setError("Failed to load upvoted services");
+        showAlert("Error", "Failed to load upvoted services", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUpvotedServices();
+  }, [userId, currentPage, showAlert]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-green-600"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="text-center p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
+        <p className="text-gray-600 dark:text-gray-400">No upvoted services yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-10">
+      <h3 className="text-2xl font-bold mb-6 text-green-700 dark:text-green-500">Upvoted Services</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {services.map((service) => (
+          <motion.div
+            key={service._id}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+          >
+            <div className="flex items-center mb-3">
+              {service.logo ? (
+                <img src={service.logo} alt={service.serviceName} className="w-10 h-10 rounded-full mr-3" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
+                  <span className="text-green-700 dark:text-green-300 font-bold">
+                    {service.serviceName?.charAt(0)}
+                  </span>
+                </div>
+              )}
+              <h4 className="font-semibold text-lg flex-1 truncate">{service.serviceName}</h4>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 h-10">
+              {service.description || "No description available"}
+            </p>
+            
+            <div className="flex items-center justify-between mt-4">
+              <span className="flex items-center text-green-600 dark:text-green-400">
+                <ThumbsUp size={16} className="mr-1" />
+                {service.upvotes || 0}
+              </span>
+              
+              <Link 
+                to={`/services/${service._id}`}
+                className="text-sm text-green-600 dark:text-green-400 hover:underline"
+              >
+                View Details →
+              </Link>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-8 space-x-2">
+          <Button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+          >
+            Previous
+          </Button>
+          
+          <span className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-md">
+            {currentPage} of {totalPages}
+          </span>
+          
+          <Button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+          >
+            Next
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ProfilePage = () => {
   const { userId } = useParams();
   const [user, setUser] = useState(null);
-  const [userStats, setUserStats] = useState({ bugs: [], issues: [], feedbacks: [] });
+  const [userStats, setUserStats] = useState({ issues: [], feedbacks: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const { showAlert } = useAlert(); // Access the showAlert function
-  const [dataLoaded, setDataLoaded] = useState(false); // Add this to track initial data loading
+  const { showAlert } = useAlert();
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (dataLoaded) return; // Skip if data already loaded
+      if (dataLoaded) return;
       
       try {
         const token = localStorage.getItem("token");
@@ -307,25 +381,26 @@ const ProfilePage = () => {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });
+        
         setUser(response.data.data.user);
-        setUserStats(response.data.data.userStats);
-        setDataLoaded(true); // Mark data as loaded
+        setUserStats({
+          feedbacks: response.data.data.userStats.feedbacks || [],
+          issues: response.data.data.userStats.issues || []
+        });
+        setDataLoaded(true);
         
-        // Show success alert for profile load only once after initial load
-        showAlert("Profile Loaded", "Your profile data has been successfully loaded.", "success");
+        showAlert("Profile Loaded", "Profile data loaded successfully", "success");
       } catch (err) {
-        setError("Failed to load profile");
         console.error("Profile fetch error:", err.response?.data || err.message);
-        
-        // Show error alert for profile load failure only once
-        showAlert("Profile Load Failed", "Failed to load profile data. Please try again.", "error");
+        setError("Failed to load profile. Please try again later.");
+        showAlert("Error", "Failed to load profile", "error");
       } finally {
         setLoading(false);
       }
     };
     
     fetchUserProfile();
-  }, [userId, dataLoaded, showAlert]); // Add dataLoaded to the dependency array
+  }, [userId, dataLoaded, showAlert]);
 
   const handleUpdate = async (updateData) => {
     try {
@@ -334,111 +409,116 @@ const ProfilePage = () => {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
-      setShowUpdateModal(false);
       
-      // Show success alert
-      showAlert("Profile Updated", "Your profile has been successfully updated.", "success");
-      
-      // Reload user data without refreshing the page
       const response = await axios.get(`${API_BASE_URL}/profile/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
+      
       setUser(response.data.data.user);
+      showAlert("Success", "Profile updated successfully", "success");
     } catch (err) {
-      showAlert("Update Failed", err.response?.data?.message || "Update failed", "error");
-      throw new Error(err.response?.data?.message || "Update failed");
+      const errorMessage = err.response?.data?.message || "Update failed";
+      showAlert("Error", errorMessage, "error");
+      throw new Error(errorMessage);
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen pt-24">
-      <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-green-600"></div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen pt-24">
+        <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-green-600"></div>
+      </div>
+    );
+  }
   
-  if (error) return (
-    <div className="text-center p-12 pt-32">
-      <AlertCircle size={64} className="mx-auto text-red-500 mb-6" />
-      <p className="text-2xl font-medium text-red-500">{error}</p>
-      <Button 
-        onClick={() => {
-          setDataLoaded(false); // Reset data loaded state
-          window.location.reload();
-        }} 
-        className="mt-6 bg-green-600 hover:bg-green-700 text-lg py-3 px-6"
-      >
-        Try Again
-      </Button>
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="text-center p-12 pt-32">
+        <AlertCircle size={64} className="mx-auto text-red-500 mb-6" />
+        <p className="text-2xl font-medium text-red-500">{error}</p>
+        <Button 
+          onClick={() => {
+            setDataLoaded(false);
+            window.location.reload();
+          }} 
+          className="mt-6 bg-green-600 hover:bg-green-700 text-white text-lg py-3 px-6"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-8 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl shadow-xl text-gray-900 dark:text-white">
-      {/* Profile Header */}
-      <div className="relative overflow-hidden bg-white dark:bg-gray-800 p-8 md:p-10 rounded-xl shadow-md mb-10 mt-14">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-green-100 dark:bg-green-900 opacity-20 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-100 dark:bg-green-900 opacity-20 rounded-full -ml-16 -mb-16"></div>
-        
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
-          <AnimatedCircularText text="Service Flow" />
-          
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-4xl md:text-5xl font-bold text-green-700 dark:text-green-500">
-              {user?.fullname || "User"}
-            </h2>
-            <div className="mt-6 space-y-3">
-              <p className="flex items-center justify-center md:justify-start gap-3 text-xl">
-                <span className="font-medium text-gray-600 dark:text-gray-400">Username:</span> 
-                <span className="font-semibold">{user?.username}</span>
-              </p>
-              <p className="flex items-center justify-center md:justify-start gap-3 text-xl">
-                <span className="font-medium text-gray-600 dark:text-gray-400">Email:</span> 
-                <span className="font-semibold">{user?.email}</span>
-              </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Profile Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 mb-8"
+        >
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <AnimatedCircularText text="Service Flow" />
+            
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold text-green-700 dark:text-green-500 mb-4">
+                {user?.fullname || "User"}
+              </h1>
+              <div className="space-y-2">
+                <p className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Username:</span> {user?.username}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Email:</span> {user?.email}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Member Since:</span>{" "}
+                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                </p>
+              </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <CounterCard 
+            icon={<AlertCircle size={32} className="text-white" />}
+            label="Issues Created"
+            count={userStats.issues.length}
+            color="bg-gradient-to-br from-violet-500 to-violet-700"
+          />
+          <CounterCard 
+            icon={<MessageSquare size={32} className="text-white" />}
+            label="Feedbacks Shared"
+            count={userStats.feedbacks.length}
+            color="bg-gradient-to-br from-teal-500 to-teal-700"
+          />
         </div>
-      </div>
-      
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-10">
-        <CounterCard 
-          icon={<Bug size={32} className="text-white" />} 
-          label="Bugs Created" 
-          count={userStats.bugs.length || 0} 
-          color="bg-gradient-to-br from-blue-500 to-blue-700"
-        />
-        <CounterCard 
-          icon={<AlertCircle size={32} className="text-white" />} 
-          label="Issues Created" 
-          count={userStats.issues.length || 0} 
-          color="bg-gradient-to-br from-amber-500 to-amber-700"
-        />
-        <CounterCard 
-          icon={<MessageSquare size={32} className="text-white" />} 
-          label="Feedbacks Created" 
-          count={userStats.feedbacks.length || 0} 
-          color="bg-gradient-to-br from-purple-500 to-purple-700"
+
+        {/* Update Profile Button */}
+        <Button 
+          onClick={() => setShowUpdateModal(true)}
+          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl mb-8"
+        >
+          <Edit size={24} />
+          <span>Update Profile</span>
+        </Button>
+
+        {/* Upvoted Services */}
+        <UpvotedServices userId={userId} />
+
+        {/* Update Modal */}
+        <UpdateProfileModal 
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+          user={user}
+          onUpdate={handleUpdate}
         />
       </div>
-
-      {/* Update Profile Button */}
-      <Button 
-        onClick={() => setShowUpdateModal(true)}
-        className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
-      >
-        <Edit size={24} />
-        <span>Update Profile</span>
-      </Button>
-
-      {/* Custom Update Modal */}
-      <UpdateProfileModal 
-        isOpen={showUpdateModal}
-        onClose={() => setShowUpdateModal(false)}
-        user={user}
-        onUpdate={handleUpdate}
-      />
     </div>
   );
 };

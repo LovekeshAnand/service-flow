@@ -1,5 +1,4 @@
-import mongoose, {Schema} from "mongoose"
-import { commentSchema } from "./commentSchema.model.js";
+import mongoose, {Schema} from "mongoose";
 
 const issueSchema = new Schema(
     {
@@ -31,9 +30,27 @@ const issueSchema = new Schema(
             required: true 
         },
 
-        comments: [commentSchema], // Embedded chat messages
+        comments: [{
+            type: Schema.Types.ObjectId,
+            ref: "Comment"
+        }],
+        
+        upvotes: {
+            type: Number,
+            default: 0
+        },
+        
+        downvotes: {
+            type: Number,
+            default: 0
+        },
+        
+        netVotes: {
+            type: Number,
+            default: 0
+        }
     },
     { timestamps: true }
 );
 
-export const Issue = mongoose.model("Issue", issueSchema)
+export const Issue = mongoose.model("Issue", issueSchema);
