@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ const API_BASE_URL = "http://localhost:8000/api/v1";
 
 export default function IssuesPage() {
   const { serviceId } = useParams();
+  const navigate = useNavigate(); // Add the navigate hook
   
   const [issues, setIssues] = useState([]);
   const [search, setSearch] = useState("");
@@ -60,7 +61,10 @@ export default function IssuesPage() {
     }
   }
 
-  async function handleVote(issueId, voteType) {
+  async function handleVote(issueId, voteType, event) {
+    // Stop event propagation to prevent navigation when clicking vote buttons
+    event.stopPropagation();
+    
     try {
       const token = localStorage.getItem('token');
       await axios.post(
@@ -82,6 +86,11 @@ export default function IssuesPage() {
       setError(error.response?.data?.message || error.message || `Failed to ${voteType} issue`);
     }
   }
+
+  // Function to handle issue click and navigate to issue detail
+  const handleIssueClick = (issueId) => {
+    navigate(`/services/${serviceId}/issues/${issueId}`);
+  };
 
   // Function to get status badge color
   const getStatusColor = (status) => {
@@ -231,7 +240,10 @@ export default function IssuesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                <Card 
+                  className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleIssueClick(issue._id)}
+                >
                   <CardContent className="p-0">
                     <div className="p-5">
                       <div className="flex justify-between items-start mb-2">
@@ -260,7 +272,7 @@ export default function IssuesPage() {
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            onClick={() => handleVote(issue._id, 'upvote')}
+                            onClick={(e) => handleVote(issue._id, 'upvote', e)}
                             className="gap-1 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400"
                           >
                             <ThumbsUp size={16} /> Upvote
@@ -268,7 +280,7 @@ export default function IssuesPage() {
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            onClick={() => handleVote(issue._id, 'downvote')}
+                            onClick={(e) => handleVote(issue._id, 'downvote', e)}
                             className="gap-1 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
                           >
                             <ThumbsDown size={16} /> Downvote

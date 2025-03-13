@@ -134,7 +134,11 @@ const deleteIssue = asyncHandler(async (req, res) => {
 const addComment = asyncHandler(async (req, res) => {
     const { issueId } = req.params;
     const { message } = req.body;
-    const userId = req.user._id;
+    const userId = req.user?._id;
+
+    if (!userId) {
+        throw new ApiError(401, "Authentication required to add a comment.");
+    }
 
     if (!message) {
         throw new ApiError(400, "Message cannot be empty.");

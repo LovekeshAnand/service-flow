@@ -197,6 +197,15 @@ const ServiceDashboard = () => {
     }
   };
   
+  // Navigation handlers for "See All" buttons
+  const navigateToAllIssues = () => {
+    navigate(`/issues/${serviceId}`);
+  };
+
+  const navigateToAllFeedbacks = () => {
+    navigate(`/feedbacks/${serviceId}`);
+  };
+  
   // Show loading state
   if (loading) {
     return (
@@ -243,8 +252,31 @@ const ServiceDashboard = () => {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your service and view analytics</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Dashboard</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your service and view analytics</p>
+            </div>
+            
+            {/* New: See All Issues and Feedbacks buttons */}
+            <div className="flex space-x-4">
+              <Button
+                onClick={navigateToAllIssues}
+                className="bg-violet-600 hover:bg-violet-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+              >
+                <AlertCircle size={18} />
+                <span>See All Issues</span>
+              </Button>
+              
+              <Button
+                onClick={navigateToAllFeedbacks}
+                className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+              >
+                <MessageSquare size={18} />
+                <span>See All Feedbacks</span>
+              </Button>
+            </div>
+          </div>
         </motion.div>
         
         {/* Service Header */}
