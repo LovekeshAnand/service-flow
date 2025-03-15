@@ -88,21 +88,24 @@ const Footer = () => {
             </h3>
             <div className="flex space-x-4">
               <a 
-                href="#" 
+                href="https://x.com/LovekeshAnand07" 
+                target="blank"
                 className="w-10 h-10 rounded-full bg-[#0a4b8c]/20 flex items-center justify-center border border-[#5396e3]/30 hover:border-[#5396e3]/50 hover:bg-[#0a4b8c]/30 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-300"
                 aria-label="Twitter"
               >
                 <Twitter size={20} className="text-blue-200" />
               </a>
               <a 
-                href="#" 
+                href="https://www.instagram.com/lovekesh_09/" 
+                target="blank"
                 className="w-10 h-10 rounded-full bg-[#0a4b8c]/20 flex items-center justify-center border border-[#5396e3]/30 hover:border-[#5396e3]/50 hover:bg-[#0a4b8c]/30 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-300"
                 aria-label="Instagram"
               >
                 <Instagram size={20} className="text-blue-200" />
               </a>
               <a 
-                href="#" 
+                href="https://www.linkedin.com/in/lovekesh-anand-443138318/"
+                target="blank"
                 className="w-10 h-10 rounded-full bg-[#0a4b8c]/20 flex items-center justify-center border border-[#5396e3]/30 hover:border-[#5396e3]/50 hover:bg-[#0a4b8c]/30 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-300"
                 aria-label="LinkedIn"
               >

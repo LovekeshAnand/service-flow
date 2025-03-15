@@ -6,6 +6,7 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAlert } from '../components/AlertProvider';
+import { Lock } from "lucide-react";
 
 const API_BASE_URL = "http://localhost:8000/api/v1/users";
 
@@ -102,6 +103,7 @@ const AnimatedProfileAvatar = ({ name }) => {
 };
 
 // Update Profile Modal
+// Update Profile Modal
 const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   const [oldPassword, setOldPassword] = useState("");
   const [updateData, setUpdateData] = useState({
@@ -113,6 +115,17 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const modalRef = useRef(null);
   const { showAlert } = useAlert();
+  const [animateIn, setAnimateIn] = useState(false);
+
+  // Handle animation timing
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to trigger animations after modal appears
+      setTimeout(() => setAnimateIn(true), 50);
+    } else {
+      setAnimateIn(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -130,7 +143,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target) && isOpen) {
-        onClose();
+        handleClose();
       }
     };
 
@@ -141,13 +154,20 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === "Escape" && isOpen) {
-        onClose();
+        handleClose();
       }
     };
 
     document.addEventListener("keydown", handleEscKey);
     return () => document.removeEventListener("keydown", handleEscKey);
   }, [isOpen, onClose]);
+
+  const handleClose = () => {
+    // Set animateIn to false to trigger exit animations
+    setAnimateIn(false);
+    // Delay actual closing to allow exit animations to play
+    setTimeout(() => onClose(), 300);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -163,7 +183,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
         ...updateData, 
         password: oldPassword
       });
-      onClose();
+      handleClose();
     } catch (error) {
       setErrorMessage(error.message || "Something went wrong. Please try again.");
     }
@@ -172,101 +192,175 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <motion.div 
-        ref={modalRef}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="max-w-md w-full p-6 rounded-3xl bg-gradient-to-br from-blue-900/80 to-blue-950/90 backdrop-blur-sm border border-blue-800/40 relative"
-        style={{ maxHeight: "90vh", overflowY: "auto" }}
-      >
-        <div className="absolute -inset-px rounded-3xl bg-gradient-to-r from-blue-500/10 to-transparent opacity-50 blur-sm"></div>
+    <div className={`fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-lg transition-opacity duration-300 ${animateIn ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Animated background elements */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Animated gradient circles */}
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-gray-900/20 blur-[100px] top-[10%] -left-[200px] animate-pulse"></div>
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-gray-800/20 blur-[100px] bottom-[20%] -right-[200px] animate-pulse" style={{ animationDuration: '8s' }}></div>
         
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+        
+        {/* Animated lines */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent opacity-30"></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent transform translate-y-[40vh] opacity-30"></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent transform translate-y-[80vh] opacity-30"></div>
+        </div>
+        
+        {/* Animated particles */}
+        {[...Array(12)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-gray-500/30"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              opacity: 0.2 + Math.random() * 0.5,
+              animation: `float${i % 3 + 1} ${8 + Math.random() * 15}s infinite ease-in-out`
+            }}
+          ></div>
+        ))}
+      </div>
+
+      <div 
+        ref={modalRef}
+        className={`max-w-md w-full bg-gradient-to-br from-black to-gray-900/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl shadow-gray-900/50 border border-gray-800/30 relative transition-all duration-500 
+        ${animateIn ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}
+      >
+        {/* Decorative corner accents */}
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-gray-500/30 rounded-tl-2xl"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-gray-500/30 rounded-br-2xl"></div>
+        
+        {/* Glowing orbs decoration */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gray-500/10 blur-xl"></div>
+        <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-gray-600/10 blur-xl"></div>
+        
+        {/* Close button with animation */}
         <button
-          onClick={onClose}
-          className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-blue-900/50 hover:bg-blue-800 transition-colors duration-200 hover:rotate-90 transform z-10"
+          onClick={handleClose}
+          className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/50 hover:bg-gray-700/60 transition-all duration-300 hover:rotate-90 transform border border-gray-700/30 group z-10"
+          aria-label="Close"
         >
-          <X className="h-4 w-4 text-blue-200" />
+          <X className="h-4 w-4 text-gray-100 group-hover:text-white" />
         </button>
         
-        <div className="text-center mb-6 relative z-10">
-          <h2 className="text-2xl font-bold text-blue-100 relative">
+        <div className="text-center mb-8 relative">
+          <h2 className={`text-2xl font-bold text-white transition-all duration-500 ${animateIn ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
             Update Profile
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-blue-500 rounded-full"></div>
+            <div className="mt-2 mx-auto w-16 h-1 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full"></div>
           </h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {errorMessage && (
-            <div className="bg-red-900/30 text-red-300 p-3 rounded-2xl text-center font-semibold border-l-4 border-red-500 animate-pulse">
+            <div className="bg-red-900/30 text-red-100 p-4 rounded-xl text-center font-medium border border-red-500/40 animate-pulse backdrop-blur-sm">
               {errorMessage}
             </div>
           )}
           
           <div className="space-y-4">
-            <Input 
-              name="fullname"
-              placeholder="Full Name"
-              value={updateData.fullname}
-              onChange={(e) => setUpdateData({ ...updateData, fullname: e.target.value })}
-              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
-              required
-            />
-            <Input 
-              name="username"
-              placeholder="Username"
-              value={updateData.username}
-              onChange={(e) => setUpdateData({ ...updateData, username: e.target.value })}
-              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
-              required
-            />
-            <Input 
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={updateData.email}
-              onChange={(e) => setUpdateData({ ...updateData, email: e.target.value })}
-              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
-              required
-            />
-            <Input 
-              type="password"
-              name="newPassword"
-              placeholder="New Password (leave empty to keep current)"
-              value={updateData.newPassword}
-              onChange={(e) => setUpdateData({ ...updateData, newPassword: e.target.value })}
-              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
-            />
-            <Input 
-              type="password"
-              name="currentPassword"
-              placeholder="Current Password (required)"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
-              required
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                name="fullname"
+                placeholder="Full Name"
+                value={updateData.fullname}
+                onChange={(e) => setUpdateData({ ...updateData, fullname: e.target.value })}
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                name="username"
+                placeholder="Username"
+                value={updateData.username}
+                onChange={(e) => setUpdateData({ ...updateData, username: e.target.value })}
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={updateData.email}
+                onChange={(e) => setUpdateData({ ...updateData, email: e.target.value })}
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                type="password"
+                name="newPassword"
+                placeholder="New Password (leave empty to keep current)"
+                value={updateData.newPassword}
+                onChange={(e) => setUpdateData({ ...updateData, newPassword: e.target.value })}
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                type="password"
+                name="currentPassword"
+                placeholder="Current Password (required)"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+                required
+              />
+            </div>
           </div>
           
-          <div className="pt-4 space-y-3">
+          <div className="pt-6 space-y-3">
             <Button 
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl py-3 relative group"
+              className="w-full py-6 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white border border-gray-500/30 shadow-lg shadow-gray-600/20 hover:shadow-gray-500/30 group"
             >
-              <span className="relative z-10">Save Changes</span>
-              <div className="absolute -inset-px rounded-xl bg-gradient-to-r from-blue-500/20 to-transparent opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300"></div>
+              <span className="flex items-center justify-center">
+                <svg className="w-5 h-5 mr-2 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Save Changes
+              </span>
             </Button>
             <Button 
               type="button"
-              onClick={onClose}
-              className="w-full bg-transparent border border-blue-600/30 text-blue-300 hover:bg-blue-800/20 hover:border-blue-600/50 rounded-xl py-3"
+              onClick={handleClose}
+              className="w-full py-6 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-red-600/80 to-red-500/80 hover:from-red-500 hover:to-red-400 text-white border border-red-500/30 group"
             >
-              Cancel
+              <span className="flex items-center justify-center">
+                <svg className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel
+              </span>
             </Button>
           </div>
         </form>
-      </motion.div>
+      </div>
     </div>
   );
 };

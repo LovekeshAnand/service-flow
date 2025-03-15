@@ -303,7 +303,7 @@ const Home = () => {
             <video 
               ref={videoRef}
               className="w-full h-full object-cover brightness-110" 
-              poster="/hq720.jpg" 
+              poster="service-flow thumbnail.png" 
               muted
             >
               <source src="/2025-03-08 11-53-21.mp4" type="video/mp4" />
@@ -428,29 +428,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Partners Section */}
-      <div ref={partnersRef} className="py-24 px-4 relative z-10">
-        <div className="max-w-7xl mx-auto">
-          <div className={`text-center mb-16`}>
-            <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
-              Our Partners
-            </h2>
-            <p className="text-blue-200 max-w-2xl mx-auto">
-              We collaborate with industry leaders to provide you with the best service possible.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {["TechCorp", "GrowthLabs", "FutureServe", "InnovateCo", "NextLevel", "EvoSystems"].map((partner, index) => (
-              <PartnerLogo 
-                key={index}
-                name={partner}
-                delay={index * 100}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* CSS animations for particles */}
       <style>{`
