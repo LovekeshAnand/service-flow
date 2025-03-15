@@ -171,7 +171,7 @@ const Navbar = () => {
                 <Link to="/" className="text-blue-100 hover:text-white transition-colors duration-300">
                   Home
                 </Link>
-                <a href="/about" className="text-blue-100 hover:text-white transition-colors duration-300">
+                <a href="/About" className="text-blue-100 hover:text-white transition-colors duration-300">
                   About
                 </a>
                 <Link to="/services" className="text-blue-100 hover:text-white transition-colors duration-300">
@@ -332,7 +332,7 @@ const Navbar = () => {
 
       {/* Animated background elements for navbar */}
       <div className="fixed top-0 left-0 w-full h-20 pointer-events-none z-40 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+        {/* <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div> */}
         <div className="absolute top-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
         <div className="absolute bottom-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent"></div>
       </div>
