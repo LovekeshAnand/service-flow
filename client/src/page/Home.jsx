@@ -306,7 +306,7 @@ const Home = () => {
               poster="service-flow thumbnail.png" 
               muted
             >
-              <source src="/2025-03-08 11-53-21.mp4" type="video/mp4" />
+              <source src="/demo-video.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
 
