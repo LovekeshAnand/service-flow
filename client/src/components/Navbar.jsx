@@ -2,13 +2,15 @@ import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import RegisterPopup from "./RegisterPopup";
 import LoginPopup from "./LoginPopup";
-import { useAlert } from "./AlertProvider"; // Make sure this path is correct
+import { useAlert } from "./AlertProvider";
+import { Menu, X, ChevronDown } from "lucide-react";
 
 const Navbar = () => {
   const [isRegisterPopupOpen, setIsRegisterPopupOpen] = useState(false);
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const menuRef = useRef(null);
   const { showAlert } = useAlert();
 
@@ -28,9 +30,13 @@ const Navbar = () => {
       }
     };
 
-    loadProfile();
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
 
+    loadProfile();
     window.addEventListener("storage", loadProfile);
+    window.addEventListener("scroll", handleScroll);
     
     // Close menu when clicking outside
     const handleClickOutside = (event) => {
@@ -43,6 +49,7 @@ const Navbar = () => {
     
     return () => {
       window.removeEventListener("storage", loadProfile);
+      window.removeEventListener("scroll", handleScroll);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
@@ -133,130 +140,140 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-5 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-full px-4 sm:px-6 md:px-8 py-3 flex items-center gap-2 sm:gap-4 md:gap-8 border border-gray-300 z-50 backdrop-blur-lg w-[90%] sm:w-auto max-w-5xl">
-        <Link to="/" className="text-lg font-semibold text-green-700 whitespace-nowrap">
-          Service Flow
-        </Link>
-        
-        {/* Desktop Menu */}
-        <div className="hidden md:flex gap-6">
-          <Link to="/" className="text-gray-700 hover:text-green-600 transition">
-            Home
-          </Link>
-          <a href="#" className="text-gray-700 hover:text-green-600 transition">
-            Docs
-          </a>
-          <Link to="/services" className="text-gray-700 hover:text-green-600 transition">
-            Services
-          </Link>
-          <a href="#" className="text-gray-700 hover:text-green-600 transition">
-            Contact
-          </a>
-        </div>
-        
-        <div className="ml-auto hidden md:flex gap-4">
-          {!profile ? (
-            <>
-              <button
-                onClick={() => setIsLoginPopupOpen(true)}
-                className="px-5 py-2 text-green-700 border border-green-600 rounded-full bg-white hover:bg-green-100 transition"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setIsRegisterPopupOpen(true)}
-                className="px-5 py-2 text-white bg-green-600 rounded-full hover:bg-green-700 transition"
-              >
-                Register
-              </button>
-            </>
-          ) : (
-            <>
-              {isServiceProvider() ? (
-                <Link 
-                  to={`/services/${getServiceId()}/dashboard`} 
-                  className="px-5 py-2 text-white bg-green-600 rounded-full hover:bg-green-700 transition"
-                >
-                  Dashboard
-                </Link>
-              ) : (
-                <Link 
-                  to={`/profile/${profile._id || profile.id}`} 
-                  className="px-5 py-2 text-white bg-green-600 rounded-full hover:bg-green-700 transition"
-                >
-                  Profile
-                </Link>
-              )}
-              <button
-                onClick={handleLogout}
-                className="px-5 py-2 text-green-600 border border-green-600 rounded-full bg-white hover:bg-green-100 transition"
-              >
-                Logout
-              </button>
-            </>
-          )}
-        </div>
-        
-        {/* Mobile Menu Button */}
-        <div className="ml-auto md:hidden">
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 text-green-700 hover:bg-green-50 rounded-full transition"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor" 
-              className="w-6 h-6"
+      <nav 
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+          isScrolled 
+            ? "py-3 backdrop-blur-xl bg-[#0a2c54]/80 shadow-lg shadow-blue-900/20" 
+            : "py-5 bg-transparent"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <Link 
+              to="/" 
+              className="flex items-center space-x-2 group"
             >
-              {isMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+              <img 
+                src="/logo.png"  // Replace with your actual logo filename
+                alt="Service Flow Logo"
+                className="w-10 h-10 object-contain"
+              />
+              <span className={`text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#5396e3] to-[#9ecbff] transition-all duration-300 ${
+                isScrolled ? "opacity-100" : "opacity-90"
+              }`}>
+                Service Flow
+              </span>
+            </Link>
+            
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center space-x-8">
+              <div className="flex items-center space-x-6">
+                <Link to="/" className="text-blue-100 hover:text-white transition-colors duration-300">
+                  Home
+                </Link>
+                <a href="/about" className="text-blue-100 hover:text-white transition-colors duration-300">
+                  About
+                </a>
+                <Link to="/services" className="text-blue-100 hover:text-white transition-colors duration-300">
+                  Services
+                </Link>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                {!profile ? (
+                  <>
+                    <button
+                      onClick={() => setIsLoginPopupOpen(true)}
+                      className="px-5 py-2 text-blue-100 border border-[#5396e3]/30 rounded-xl hover:bg-[#0a4b8c]/20 hover:border-[#5396e3]/50 hover:text-white transition-all duration-300"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={() => setIsRegisterPopupOpen(true)}
+                      className="px-5 py-2 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 group relative"
+                    >
+                      <span className="relative z-10">Register</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {isServiceProvider() ? (
+                      <Link 
+                        to={`/services/${getServiceId()}/dashboard`} 
+                        className="px-5 py-2 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 group relative"
+                      >
+                        <span className="relative z-10">Dashboard</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                      </Link>
+                    ) : (
+                      <Link 
+                        to={`/profile/${profile._id || profile.id}`} 
+                        className="px-5 py-2 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 group relative"
+                      >
+                        <span className="relative z-10">Profile</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="px-5 py-2 text-blue-100 border border-[#5396e3]/30 rounded-xl hover:bg-[#0a4b8c]/20 hover:border-[#5396e3]/50 hover:text-white transition-all duration-300"
+                    >
+                      Logout
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="w-10 h-10 flex items-center justify-center text-blue-100 hover:text-white transition-colors duration-300"
+              >
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
       
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu */}
       {isMenuOpen && (
         <div 
           ref={menuRef}
-          className="fixed top-20 right-5 bg-white shadow-xl rounded-xl p-4 z-50 border border-gray-200 w-64 md:hidden"
+          className="fixed top-0 left-0 w-full h-screen bg-gradient-to-b from-[#0a2c54]/95 to-[#0a4b8c]/95 backdrop-blur-lg z-40 transform transition-transform duration-300 ease-in-out"
+          style={{ 
+            clipPath: isMenuOpen ? "circle(150% at 100% 0)" : "circle(0% at 100% 0)",
+          }}
         >
-          <div className="flex flex-col gap-3">
-            <Link 
-              to="/" 
-              className="text-gray-700 hover:text-green-600 transition py-2 px-3 hover:bg-gray-50 rounded-lg"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <a 
-              href="#" 
-              className="text-gray-700 hover:text-green-600 transition py-2 px-3 hover:bg-gray-50 rounded-lg"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              About
-            </a>
-            <Link 
-              to="/services" 
-              className="text-gray-700 hover:text-green-600 transition py-2 px-3 hover:bg-gray-50 rounded-lg"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Services
-            </Link>
-            <a 
-              href="#" 
-              className="text-gray-700 hover:text-green-600 transition py-2 px-3 hover:bg-gray-50 rounded-lg"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contact
-            </a>
+          <div className="flex flex-col h-full p-6">
+            <div className="flex flex-col space-y-6 mt-16">
+              <Link 
+                to="/"
+                className="text-blue-100 hover:text-white text-3xl font-light transition-colors duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <a
+                href="/about"
+                className="text-blue-100 hover:text-white text-3xl font-light transition-colors duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                About
+              </a>
+              <Link
+                to="/services"
+                className="text-blue-100 hover:text-white text-3xl font-light transition-colors duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Services
+              </Link>
+            </div>
             
-            <div className="border-t border-gray-200 my-2 pt-2">
+            <div className="mt-auto mb-10 flex flex-col space-y-4">
               {!profile ? (
                 <>
                   <button
@@ -264,7 +281,7 @@ const Navbar = () => {
                       setIsLoginPopupOpen(true);
                       setIsMenuOpen(false);
                     }}
-                    className="w-full my-1 px-3 py-2 text-green-700 border border-green-600 rounded-lg bg-white hover:bg-green-50 transition text-left"
+                    className="w-full px-5 py-3 text-blue-100 border border-[#5396e3]/30 rounded-xl hover:bg-[#0a4b8c]/20 hover:border-[#5396e3]/50 hover:text-white transition-all duration-300 text-center"
                   >
                     Login
                   </button>
@@ -273,9 +290,10 @@ const Navbar = () => {
                       setIsRegisterPopupOpen(true);
                       setIsMenuOpen(false);
                     }}
-                    className="w-full my-1 px-3 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition text-left"
+                    className="w-full px-5 py-3 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 text-center relative overflow-hidden group"
                   >
-                    Register
+                    <span className="relative z-10">Register</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>
                 </>
               ) : (
@@ -283,23 +301,25 @@ const Navbar = () => {
                   {isServiceProvider() ? (
                     <Link 
                       to={`/services/${getServiceId()}/dashboard`}
-                      className="w-full my-1 px-3 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition block text-left"
+                      className="w-full px-5 py-3 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 text-center relative overflow-hidden group"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Dashboard
+                      <span className="relative z-10">Dashboard</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </Link>
                   ) : (
                     <Link 
-                      to={`/profile/${profile._id || profile.id}`} 
-                      className="w-full my-1 px-3 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition block"
+                      to={`/profile/${profile._id || profile.id}`}
+                      className="w-full px-5 py-3 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 text-center relative overflow-hidden group"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Profile
+                      <span className="relative z-10">Profile</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </Link>
                   )}
                   <button
                     onClick={handleLogout}
-                    className="w-full my-1 px-3 py-2 text-green-600 border border-green-600 rounded-lg bg-white hover:bg-green-50 transition text-left"
+                    className="w-full px-5 py-3 text-blue-100 border border-[#5396e3]/30 rounded-xl hover:bg-[#0a4b8c]/20 hover:border-[#5396e3]/50 hover:text-white transition-all duration-300 text-center"
                   >
                     Logout
                   </button>
@@ -309,6 +329,13 @@ const Navbar = () => {
           </div>
         </div>
       )}
+
+      {/* Animated background elements for navbar */}
+      <div className="fixed top-0 left-0 w-full h-20 pointer-events-none z-40 overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+        <div className="absolute top-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
+        <div className="absolute bottom-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent"></div>
+      </div>
 
       <RegisterPopup
         isOpen={isRegisterPopupOpen}

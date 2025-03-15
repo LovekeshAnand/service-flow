@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserCircle, AlertCircle, MessageSquare, Edit, X, ThumbsUp, FileText, MessageCircle } from 'lucide-react';
+import { UserCircle, AlertCircle, MessageSquare, Edit, X, ThumbsUp, FileText, MessageCircle, User, Mail, Calendar } from 'lucide-react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,36 @@ import { useAlert } from '../components/AlertProvider';
 const API_BASE_URL = "http://localhost:8000/api/v1/users";
 
 // Animated counter component
-const CounterCard = ({ icon, label, count, color }) => {
+const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
   const [counter, setCounter] = useState(0);
+  const cardRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
   
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(cardRef.current);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
+    if (!isInView) return;
+    
     const timer = setTimeout(() => {
       if (counter < count) {
         setCounter(prev => Math.min(prev + 1, count));
@@ -21,52 +47,59 @@ const CounterCard = ({ icon, label, count, color }) => {
     }, 50);
     
     return () => clearTimeout(timer);
-  }, [counter, count]);
+  }, [counter, count, isInView]);
   
   return (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className={`p-8 rounded-xl shadow-lg ${color} text-white h-full`}
+    <div
+      ref={cardRef}
+      className={`bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm p-6 rounded-2xl border border-blue-800/30 transition-all duration-700 hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-500/10 ${
+        isInView 
+          ? "opacity-100 translate-y-0" 
+          : "opacity-0 translate-y-12"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xl font-medium opacity-90">{label}</p>
-          <h3 className="text-5xl font-bold mt-3">{counter}</h3>
+          <p className="text-xl font-medium text-blue-200">{label}</p>
+          <h3 className="text-4xl font-bold mt-3 text-white">{counter}</h3>
         </div>
-        <div className="p-6 bg-white bg-opacity-20 rounded-full">
-          {icon}
+        <div className="p-3 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl w-14 h-14 flex items-center justify-center shadow-lg group-hover:shadow-blue-500/20 transition-all duration-500 group-hover:scale-110">
+          <Icon className="text-blue-100 w-6 h-6" />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
-// Circular text component
-const AnimatedCircularText = ({ text }) => (
-  <div className="relative w-40 h-40">
-    <svg 
-      viewBox="0 0 100 100" 
-      className="w-full h-full animate-spin" 
-      style={{ animationDuration: '15s' }}
-    >
-      <path 
-        id="textPath" 
-        d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" 
-        fill="transparent" 
-      />
-      <text className="text-green-600 text-[13px] tracking-tight">
-        <textPath href="#textPath" startOffset="0%">
-          {text} • {text} • {text} •
-        </textPath>
-      </text>
-    </svg>
-    <div className="absolute inset-0 flex items-center justify-center">
-      <UserCircle size={50} className="text-green-600" />
+// Animated profile avatar
+const AnimatedProfileAvatar = ({ name }) => {
+  return (
+    <div className="relative h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48">
+      {/* Animated circles */}
+      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 animate-pulse" style={{ animationDuration: '3s' }}></div>
+      <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-900 to-blue-800"></div>
+      
+      {/* User initial */}
+      <div className="absolute inset-0 flex items-center justify-center text-4xl md:text-5xl font-bold text-blue-100">
+        {name?.charAt(0) || "U"}
+      </div>
+      
+      {/* Animated particles */}
+      {[...Array(8)].map((_, i) => (
+        <div 
+          key={i}
+          className="absolute w-2 h-2 rounded-full bg-blue-500/70"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animation: `float${i % 3 + 1} ${3 + Math.random() * 5}s infinite ease-in-out`
+          }}
+        ></div>
+      ))}
     </div>
-  </div>
-);
+  );
+};
 
 // Update Profile Modal
 const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
@@ -140,28 +173,33 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div 
+      <motion.div 
         ref={modalRef}
-        className="max-w-md w-full p-6 rounded-3xl shadow-2xl bg-white dark:bg-gray-800 relative animate-fadeIn"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="max-w-md w-full p-6 rounded-3xl bg-gradient-to-br from-blue-900/80 to-blue-950/90 backdrop-blur-sm border border-blue-800/40 relative"
         style={{ maxHeight: "90vh", overflowY: "auto" }}
       >
+        <div className="absolute -inset-px rounded-3xl bg-gradient-to-r from-blue-500/10 to-transparent opacity-50 blur-sm"></div>
+        
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900 hover:bg-green-100 dark:hover:bg-green-800 transition-colors duration-200 hover:rotate-90 transform"
+          className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-blue-900/50 hover:bg-blue-800 transition-colors duration-200 hover:rotate-90 transform z-10"
         >
-          <X className="h-4 w-4 text-green-700 dark:text-green-300" />
+          <X className="h-4 w-4 text-blue-200" />
         </button>
         
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-green-700 dark:text-green-500 relative">
+        <div className="text-center mb-6 relative z-10">
+          <h2 className="text-2xl font-bold text-blue-100 relative">
             Update Profile
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-green-500 rounded-full"></div>
+            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-blue-500 rounded-full"></div>
           </h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           {errorMessage && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 p-3 rounded-2xl text-center font-semibold border-l-4 border-red-500 animate-pulse">
+            <div className="bg-red-900/30 text-red-300 p-3 rounded-2xl text-center font-semibold border-l-4 border-red-500 animate-pulse">
               {errorMessage}
             </div>
           )}
@@ -172,7 +210,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
               placeholder="Full Name"
               value={updateData.fullname}
               onChange={(e) => setUpdateData({ ...updateData, fullname: e.target.value })}
-              className="rounded-xl"
+              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
               required
             />
             <Input 
@@ -180,7 +218,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
               placeholder="Username"
               value={updateData.username}
               onChange={(e) => setUpdateData({ ...updateData, username: e.target.value })}
-              className="rounded-xl"
+              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
               required
             />
             <Input 
@@ -189,7 +227,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
               placeholder="Email"
               value={updateData.email}
               onChange={(e) => setUpdateData({ ...updateData, email: e.target.value })}
-              className="rounded-xl"
+              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
               required
             />
             <Input 
@@ -198,7 +236,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
               placeholder="New Password (leave empty to keep current)"
               value={updateData.newPassword}
               onChange={(e) => setUpdateData({ ...updateData, newPassword: e.target.value })}
-              className="rounded-xl"
+              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
             />
             <Input 
               type="password"
@@ -206,7 +244,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
               placeholder="Current Password (required)"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
-              className="rounded-xl"
+              className="rounded-xl bg-blue-900/30 border-blue-800/50 text-blue-100 placeholder:text-blue-400"
               required
             />
           </div>
@@ -214,20 +252,21 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
           <div className="pt-4 space-y-3">
             <Button 
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-3"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl py-3 relative group"
             >
-              Save Changes
+              <span className="relative z-10">Save Changes</span>
+              <div className="absolute -inset-px rounded-xl bg-gradient-to-r from-blue-500/20 to-transparent opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300"></div>
             </Button>
             <Button 
               type="button"
               onClick={onClose}
-              className="w-full bg-red-600 hover:bg-red-700 text-white rounded-xl py-3"
+              className="w-full bg-transparent border border-blue-600/30 text-blue-300 hover:bg-blue-800/20 hover:border-blue-600/50 rounded-xl py-3"
             >
               Cancel
             </Button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };
@@ -273,7 +312,7 @@ const UpvotedServices = ({ userId }) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-green-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-blue-500"></div>
       </div>
     );
   }
@@ -288,30 +327,33 @@ const UpvotedServices = ({ userId }) => {
 
   if (!services || services.length === 0) {
     return (
-      <div className="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
-        <p className="text-gray-600 dark:text-gray-400">No upvoted services yet.</p>
+      <div className="text-center p-6 bg-blue-900/20 backdrop-blur-sm rounded-xl border border-blue-800/30">
+        <p className="text-blue-300">No upvoted services yet.</p>
       </div>
     );
   }
 
   return (
     <div className="mt-10">
-      <h3 className="text-2xl font-bold mb-6 text-green-700 dark:text-green-500">Upvoted Services</h3>
+      <h3 className="text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
+        Upvoted Services
+        <div className="h-1 w-40 bg-gradient-to-r from-blue-600 to-transparent rounded-full mt-2"></div>
+      </h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {services.map((service, index) => {
           // Skip any null or invalid services
           if (!service || typeof service !== 'object') return null;
           
           return (
             <motion.div
               key={service._id || `service-${Math.random()}`}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+              initial={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm p-6 rounded-2xl border border-blue-800/30 transition-all duration-300 hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-500/10 group"
             >
-              <div className="flex items-center mb-3">
+              <div className="flex items-center justify-between mb-3">
                 {service.logo ? (
                   <img 
                     src={service.logo} 
@@ -323,30 +365,30 @@ const UpvotedServices = ({ userId }) => {
                     }}
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
-                    <span className="text-green-700 dark:text-green-300 font-bold">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3">
+                    <span className="text-blue-700 dark:text-blue-300 font-bold">
                       {service.serviceName?.charAt(0) || "?"}
                     </span>
                   </div>
                 )}
-                <h4 className="font-semibold text-lg flex-1 truncate">
+                <h4 className="font-semibold text-lg flex-1 truncate text-blue-100">
                   {service.serviceName || "Unnamed Service"}
                 </h4>
               </div>
               
-              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 h-10">
+              <p className="text-sm text-blue-200 dark:text-blue-300 line-clamp-2 h-10">
                 {service.description || "No description available"}
               </p>
               
               <div className="flex items-center justify-between mt-4">
-                <span className="flex items-center text-green-600 dark:text-green-400">
+                <span className="flex items-center text-blue-300 dark:text-blue-300">
                   <ThumbsUp size={16} className="mr-1" />
                   {service.upvotes || 0}
                 </span>
                 
                 <Link 
                   to={`/services/${service._id}`}
-                  className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                  className="text-sm text-blue-300 dark:text-blue-300 hover:underline"
                 >
                   View Details →
                 </Link>
@@ -361,19 +403,19 @@ const UpvotedServices = ({ userId }) => {
           <Button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+            className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600 disabled:text-gray-400"
           >
             Previous
           </Button>
           
-          <span className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-md">
+          <span className="flex items-center px-4 py-2 bg-blue-900/30 rounded-md text-blue-200">
             {currentPage} of {totalPages}
           </span>
           
           <Button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+            className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600 disabled:text-gray-400"
           >
             Next
           </Button>
@@ -478,7 +520,7 @@ const ProfilePage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen pt-24">
-        <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-green-600"></div>
+        <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-blue-600"></div>
       </div>
     );
   }
@@ -494,7 +536,7 @@ const ProfilePage = () => {
             setError(null);
             window.location.reload();
           }} 
-          className="mt-6 bg-green-600 hover:bg-green-700 text-white text-lg py-3 px-6"
+          className="mt-6 bg-blue-600 hover:bg-blue-700 text-white text-lg py-3 px-6"
         >
           Try Again
         </Button>
@@ -503,30 +545,33 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-black">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         {/* Profile Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 mb-8"
+          className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm rounded-2xl border border-blue-800/30 p-8 mb-8"
         >
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <AnimatedCircularText text="Service Flow" />
+            <AnimatedProfileAvatar name={user?.fullname} />
             
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-green-700 dark:text-green-500 mb-4">
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200 mb-4">
                 {user?.fullname || "User"}
               </h1>
-              <div className="space-y-2">
-                <p className="text-gray-600 dark:text-gray-400">
+              <div className="space-y-3">
+                <p className="text-blue-200 flex items-center justify-center md:justify-start gap-2">
+                  <User className="h-5 w-5 text-blue-400" />
                   <span className="font-medium">Username:</span> {user?.username || "N/A"}
                 </p>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-blue-200 flex items-center justify-center md:justify-start gap-2">
+                  <Mail className="h-5 w-5 text-blue-400" />
                   <span className="font-medium">Email:</span> {user?.email || "N/A"}
                 </p>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-blue-200 flex items-center justify-center md:justify-start gap-2">
+                  <Calendar className="h-5 w-5 text-blue-400" />
                   <span className="font-medium">Member Since:</span>{" "}
                   {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                 </p>
@@ -536,18 +581,24 @@ const ProfilePage = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <CounterCard 
-            icon={<AlertCircle size={32} className="text-white" />}
+            icon={AlertCircle}
             label="Issues Created"
             count={userStats?.issues?.length || 0}
-            color="bg-gradient-to-br from-violet-500 to-violet-700"
+            delay={0}
           />
           <CounterCard 
-            icon={<MessageSquare size={32} className="text-white" />}
+            icon={MessageSquare}
             label="Feedbacks Shared"
             count={userStats?.feedbacks?.length || 0}
-            color="bg-gradient-to-br from-teal-500 to-teal-700"
+            delay={100}
+          />
+          <CounterCard 
+            icon={ThumbsUp}
+            label="Upvoted Services"
+            count={user?.upvotedServices?.length || 0}
+            delay={200}
           />
         </div>
 
@@ -555,7 +606,7 @@ const ProfilePage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Button 
             onClick={handleViewIssues}
-            className="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10"
           >
             <FileText size={24} />
             <span>View My Issues</span>
@@ -563,7 +614,7 @@ const ProfilePage = () => {
           
           <Button 
             onClick={handleViewFeedbacks}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10"
           >
             <MessageCircle size={24} />
             <span>View My Feedbacks</span>
@@ -573,7 +624,7 @@ const ProfilePage = () => {
         {/* Update Profile Button */}
         <Button 
           onClick={() => setShowUpdateModal(true)}
-          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl mb-8"
+          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 mb-8"
         >
           <Edit size={24} />
           <span>Update Profile</span>

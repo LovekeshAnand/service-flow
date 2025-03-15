@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "../src/hooks/useAuth"; // Import the AuthProvider
 import Home from "../src/page/Home";
+import About from "../src/page/AboutPage"; // Import the new About page
 import Navbar from "../src/components/Navbar";
 import Footer from "../src/components/Footer";
 import ProfilePage from "../src/page/Profile";
@@ -30,6 +31,7 @@ const App = () => (
             <main className="flex-grow pt-24 pb-10">
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} /> {/* Add the About page route */}
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/services/:id" element={<ServiceDetails />} />

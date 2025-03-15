@@ -19,24 +19,23 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
             throw new ApiError(401, "Invalid or expired access token.");
         }
 
-        if (!decodedToken || !decodedToken._id) {
-            throw new ApiError(401, "Invalid token structure.");
+        const entityId = decodedToken._id || decodedToken.userId;
+        if (!entityId) {
+            throw new ApiError(401, "Invalid token structure: Missing ID.");
         }
 
-        // 🔹 First, check if the token belongs to a User
-        let entity = await User.findById(decodedToken._id).select("-password -refreshToken");
-
+        // Try to find the entity as a user first
+        let entity = await User.findById(entityId).select("-password -refreshToken");
         if (entity) {
-            req.user = entity; // ✅ Attach user to request
+            req.user = entity;
         } else {
-            // 🔹 If not a user, check if it's a Service
-            entity = await Service.findById(decodedToken._id).select("-password -refreshToken");
-
-            if (!entity) {
+            // If not a user, check if it's a service
+            entity = await Service.findById(entityId).select("-password -refreshToken");
+            if (entity) {
+                req.service = entity;
+            } else {
                 throw new ApiError(401, "Invalid access token: No matching user or service found.");
             }
-
-            req.service = entity; // ✅ Attach service to request
         }
 
         next();
@@ -44,5 +43,7 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
         throw new ApiError(401, error?.message || "Unauthorized access.");
     }
 });
+
+
 
 export { verifyJWT };

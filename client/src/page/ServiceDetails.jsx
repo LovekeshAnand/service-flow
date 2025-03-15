@@ -8,7 +8,7 @@ import {
   Loader,
   ThumbsUp,
   X,
-  List
+  Bug
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAlert } from "../components/AlertProvider";
@@ -18,6 +18,69 @@ import IssuesLineChart from "@/components/LineChart";
 
 // Updated base URL to match your backend structure
 const API_BASE_URL = "http://localhost:8000/api/v1";
+
+// Animated counter component from ServiceDashboard
+const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
+  const [counter, setCounter] = useState(0);
+  const cardRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(cardRef.current);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
+    if (!isInView) return;
+    
+    const timer = setTimeout(() => {
+      if (counter < count) {
+        setCounter(prev => Math.min(prev + 1, count));
+      }
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [counter, count, isInView]);
+  
+  return (
+    <div
+      ref={cardRef}
+      className={`bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm p-6 rounded-2xl border border-blue-800/30 transition-all duration-700 hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-500/10 ${
+        isInView 
+          ? "opacity-100 translate-y-0" 
+          : "opacity-0 translate-y-12"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xl font-medium text-blue-200">{label}</p>
+          <h3 className="text-4xl font-bold mt-3 text-white">{counter}</h3>
+        </div>
+        <div className="p-3 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl w-14 h-14 flex items-center justify-center shadow-lg group-hover:shadow-blue-500/20 transition-all duration-500 group-hover:scale-110">
+          <Icon className="text-blue-100 w-6 h-6" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Reusable form component for issue and feedback submission
 const SubmissionForm = ({ 
@@ -30,13 +93,6 @@ const SubmissionForm = ({
   isSubmitting 
 }) => {
   const [formData, setFormData] = useState({ title: "", description: "" });
-  
-  // Extract color name from the color class (e.g., "bg-blue-600" -> "blue")
-  const colorName = color.split('-')[1];
-  
-  // Create border color classes based on the color prop
-  const borderColorClass = `border-${colorName}-500`;
-  const focusRingClass = `focus:ring-${colorName}-500`;
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,12 +107,12 @@ const SubmissionForm = ({
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg relative overflow-hidden"
+        className="bg-gradient-to-br from-blue-900/70 to-blue-950/90 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-lg relative overflow-hidden border border-blue-800/30"
       >
         {/* Header with color from prop */}
         <div className={`${color} p-6 flex items-center justify-between`}>
@@ -75,7 +131,7 @@ const SubmissionForm = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="mb-6">
-            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+            <label className="block text-blue-200 mb-2 font-medium">
               Title
             </label>
             <input
@@ -84,13 +140,13 @@ const SubmissionForm = ({
               value={formData.title}
               onChange={handleChange}
               required
-              className={`w-full px-4 py-3 rounded-lg bg-white border ${borderColorClass} focus:ring-2 ${focusRingClass} text-gray-800`}
+              className="w-full px-4 py-3 rounded-lg bg-blue-900/30 border border-blue-700/50 focus:ring-2 focus:ring-blue-500 text-white placeholder-blue-300/50"
               placeholder="Enter a clear title"
             />
           </div>
           
           <div className="mb-6">
-            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+            <label className="block text-blue-200 mb-2 font-medium">
               Description
             </label>
             <textarea
@@ -99,7 +155,7 @@ const SubmissionForm = ({
               onChange={handleChange}
               required
               rows={5}
-              className={`w-full px-4 py-3 rounded-lg bg-white border ${borderColorClass} focus:ring-2 ${focusRingClass} text-gray-800`}
+              className="w-full px-4 py-3 rounded-lg bg-blue-900/30 border border-blue-700/50 focus:ring-2 focus:ring-blue-500 text-white placeholder-blue-300/50"
               placeholder="Provide detailed information"
             />
           </div>
@@ -108,7 +164,7 @@ const SubmissionForm = ({
             <Button 
               type="button" 
               onClick={onClose}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+              className="bg-blue-950 hover:bg-blue-900 text-blue-200 border border-blue-800/50"
             >
               Cancel
             </Button>
@@ -336,10 +392,7 @@ const ServiceDetails = () => {
     navigateRef.current(`/feedbacks/${id}`);
   }, [id]);
 
-  // UPDATED: Fixed route for the issues page
-  // Inside ServiceDetails component
-
-  // UPDATED: Fix route for the issues page
+  // Handle submit issue
   const handleSubmitIssue = useCallback(async (formData) => {
     setSubmitting(true);
     try {
@@ -355,7 +408,6 @@ const ServiceDetails = () => {
       if (isMounted.current) {
         showAlertRef.current("Success", "Issue reported successfully", "success");
         setIssueFormOpen(false);
-        // FIXED: Changed the navigation path to point to the new issues route
         navigateRef.current(`/issues/${id}`);
       }
     } catch (err) {
@@ -369,7 +421,7 @@ const ServiceDetails = () => {
     }
   }, [id]);
 
-  // UPDATED: Fix route for the feedbacks page
+  // Handle submit feedback
   const handleSubmitFeedback = useCallback(async (formData) => {
     setSubmitting(true);
     try {
@@ -385,7 +437,6 @@ const ServiceDetails = () => {
       if (isMounted.current) {
         showAlertRef.current("Success", "Feedback submitted successfully", "success");
         setFeedbackFormOpen(false);
-        // FIXED: Changed the navigation path to point to the new feedbacks route
         navigateRef.current(`/feedbacks/${id}`);
       }
     } catch (err) {
@@ -409,21 +460,21 @@ const ServiceDetails = () => {
   }, [fetchServiceDetails]); // Only depend on fetchServiceDetails
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <Loader className="h-12 w-12 text-blue-500 animate-spin mb-4" />
-      <p className="text-gray-600 dark:text-gray-300 animate-pulse">Loading service details...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black">
+      <Loader className="h-16 w-16 text-blue-500 animate-spin mb-4" />
+      <p className="text-blue-300 text-xl animate-pulse">Loading service details...</p>
     </div>
   );
   
   if (error) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black px-4">
       <div className="max-w-md w-full text-center">
-        <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Could not load service details</h2>
-        <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+        <AlertCircle className="h-20 w-20 text-red-500 mx-auto mb-6" />
+        <h2 className="text-3xl font-bold text-white mb-4">Could not load service details</h2>
+        <p className="text-blue-300 mb-8">{error}</p>
         <Button 
           onClick={tryAgain} 
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl text-lg font-medium"
         >
           Try Again
         </Button>
@@ -439,26 +490,44 @@ const ServiceDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-black pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
-        {/* Dashboard Header with Animation */}
-        <motion.div 
+        {/* Service Details Header */}
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8"
+          className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm rounded-2xl border border-blue-800/30 p-6 mb-8"
         >
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Details</h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">View service information and report issues</p>
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center gap-4 mb-4 md:mb-0">
+              {service && service.logo && (
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-blue-400 flex-shrink-0">
+                  <img src={service.logo} alt={`${service.serviceName} logo`} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  {service?.serviceName}
+                  <div className="h-1 w-40 bg-gradient-to-r from-blue-600 to-transparent rounded-full mt-2"></div>
+                </h1>
+                <p className="text-blue-300 mt-1">{service?.email}</p>
+                <a 
+                  href={service?.serviceLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 text-sm"
+                >
+                  {service?.serviceLink}
+                </a>
+              </div>
             </div>
             
-            {/* NEW: See All Issues and Feedbacks buttons */}
-            <div className="flex space-x-4">
+            {/* Navigation buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={navigateToAllIssues}
-                className="bg-violet-600 hover:bg-violet-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+                className="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/20"
               >
                 <AlertCircle size={18} />
                 <span>See All Issues</span>
@@ -466,51 +535,43 @@ const ServiceDetails = () => {
               
               <Button
                 onClick={navigateToAllFeedbacks}
-                className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/20"
               >
                 <MessageSquare size={18} />
                 <span>See All Feedbacks</span>
               </Button>
             </div>
           </div>
-        </motion.div>
-        
-        {/* Service Header */}
-        {service && (
-          <div className="mb-8">
-            <Header 
-              serviceName={service.serviceName}
-              logo={service.logo}
-              email={service.email}
-              serviceLink={service.serviceLink}
-              description={service.description}
-            />
+          
+          <div className="mt-4">
+            <p className="text-blue-300 font-medium">Description</p>
+            <p className="text-white">{service?.description}</p>
+            <p className="text-blue-400 text-sm mt-2">
+              Created on: {service?.createdAt ? new Date(service.createdAt).toLocaleDateString() : "N/A"}
+            </p>
           </div>
-        )}
+        </motion.div>
         
         {/* Stats Grid */}
         {service && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <StatCard 
-              title="Upvotes" 
-              value={service.upvotes} 
-              icon={ThumbsUp} 
-              color="linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)" // Indigo gradient
-              delay={0.2}
+            <CounterCard 
+              icon={ThumbsUp}
+              label="Upvotes" 
+              count={service.upvotes} 
+              delay={0}
             />
-            <StatCard 
-              title="Issues" 
-              value={service.issues} 
-              icon={AlertCircle} 
-              color="linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)" // Purple gradient
-              delay={0.3}
+            <CounterCard 
+              icon={Bug}
+              label="Issues" 
+              count={service.issues || 0} 
+              delay={150}
             />
-            <StatCard 
-              title="Feedbacks" 
-              value={service.feedbacks} 
-              icon={MessageSquare} 
-              color="linear-gradient(135deg, #2DD4BF 0%, #0D9488 100%)" // Teal gradient
-              delay={0.4}
+            <CounterCard 
+              icon={MessageSquare}
+              label="Feedbacks" 
+              count={service.feedbacks || 0} 
+              delay={300}
             />
           </div>
         )}
@@ -521,9 +582,12 @@ const ServiceDetails = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8"
+            className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm rounded-2xl border border-blue-800/30 p-6 mb-8 overflow-hidden"
           >
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Service Activity Timeline</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">
+              Service Activity Timeline
+              <div className="h-1 w-40 bg-gradient-to-r from-blue-600 to-transparent rounded-full mt-2"></div>
+            </h2>
             <div className="h-80">
               <IssuesLineChart data={chartData} />
             </div>
@@ -532,7 +596,7 @@ const ServiceDetails = () => {
 
         {/* Action Buttons */}
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
@@ -540,11 +604,11 @@ const ServiceDetails = () => {
           <Button 
             onClick={handleUpvoteService}
             disabled={isUpvoting}
-            className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20"
           >
             {isUpvoting ? (
               <>
-                <Loader className="h-5 w-5 animate-spin" />
+                <Loader className="h-6 w-6 animate-spin" />
                 <span>Upvoting...</span>
               </>
             ) : (
@@ -556,14 +620,14 @@ const ServiceDetails = () => {
           </Button>
           <Button 
             onClick={() => setIssueFormOpen(true)}
-            className="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20"
           >
             <AlertCircle size={24} />
             <span>Report Issue</span>
           </Button>
           <Button 
             onClick={() => setFeedbackFormOpen(true)}
-            className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 rounded-xl text-xl font-medium shadow-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20"
           >
             <MessageSquare size={24} />
             <span>Give Feedback</span>
@@ -591,6 +655,22 @@ const ServiceDetails = () => {
         onSubmit={handleSubmitFeedback}
         isSubmitting={submitting}
       />
+      
+      {/* Add global animation keyframes */}
+      <style jsx global>{`
+        @keyframes float1 {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(-20px) translateX(10px); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(20px) translateX(-10px); }
+        }
+        @keyframes float3 {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(-15px) translateX(-15px); }
+        }
+      `}</style>
     </div>
   );
 };

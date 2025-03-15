@@ -24,23 +24,118 @@ const IssueCommentPage = () => {
   const [statusLoading, setStatusLoading] = useState(false);
   const [userVote, setUserVote] = useState(null);
   const [voteLoading, setVoteLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   
   // Reply functionality state
   const [selectedReply, setSelectedReply] = useState(null);
   const [newReply, setNewReply] = useState("");
   const [replyLoading, setReplyLoading] = useState(false);
+  
+  // API health state
+  const [apiHealthStatus, setApiHealthStatus] = useState({
+    voteEndpoint: true,
+    statusEndpoint: true
+  });
 
   useEffect(() => {
     if (serviceId && issueId) {
       fetchIssue();
+      checkApiHealth();
     }
-  }, [serviceId, issueId, user]);
+
+    // Animation timing and scroll tracking
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 300);
+
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [serviceId, issueId]);
+
+  // Check vote status separately with better error handling
+  useEffect(() => {
+    const checkUserVote = async () => {
+      if (!user || !apiHealthStatus.voteEndpoint) return;
+      
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/vote`,
+          { 
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            withCredentials: true
+          }
+        );
+        setUserVote(response.data.voteType);
+      } catch (err) {
+        console.error("Error fetching user vote:", err);
+        // Don't set error state to avoid showing error toast for this non-critical operation
+        
+        // Try to infer vote from issue data if available
+        if (issue && issue.userVote) {
+          setUserVote(issue.userVote);
+        }
+      }
+    };
+    
+    if (user) checkUserVote();
+  }, [user, serviceId, issueId, issue, apiHealthStatus.voteEndpoint]);
+
+  // Check API endpoint health
+  const checkApiHealth = async () => {
+    try {
+      // Updated endpoint structure
+      // Check vote endpoint
+      const voteEndpointStatus = await checkApiEndpoint(`/issues/service/${serviceId}/issues/${issueId}/vote`);
+      
+      // Check status endpoint
+      const statusEndpointStatus = await checkApiEndpoint(`/issues/service/${serviceId}/issues/${issueId}/status`);
+      
+      setApiHealthStatus({
+        voteEndpoint: voteEndpointStatus,
+        statusEndpoint: statusEndpointStatus
+      });
+      
+      if (!voteEndpointStatus || !statusEndpointStatus) {
+        console.warn("Some API endpoints may be unavailable");
+      }
+    } catch (err) {
+      console.error("Error checking API health:", err);
+    }
+  };
+
+  // Helper function to check if an API endpoint is working
+  const checkApiEndpoint = async (endpoint) => {
+    try {
+      const token = localStorage.getItem('token');
+      // Use HEAD request to check endpoint without fetching data
+      await axios.head(
+        `${API_BASE_URL}${endpoint}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true
+        }
+      );
+      return true;
+    } catch (err) {
+      // Only log the error, don't display to user
+      console.error(`API endpoint ${endpoint} check failed:`, err);
+      return false;
+    }
+  };
 
   const fetchIssue = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Using the correct endpoint according to the API structure
+      // Updated endpoint structure
       const response = await axios.get(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}`, 
         {
@@ -59,7 +154,9 @@ const IssueCommentPage = () => {
       setComments(issueData.comments || []);
       
       // Set userVote from issue data
-      setUserVote(issueData.userVote);
+      if (issueData.userVote) {
+        setUserVote(issueData.userVote);
+      }
     } catch (err) {
       console.error("Error fetching issue:", err);
       setError(err.response?.data?.message || err.message || "Failed to fetch issue details");
@@ -73,6 +170,7 @@ const IssueCommentPage = () => {
     
     setVoteLoading(true);
     try {
+      // Updated endpoint structure
       // Determine if we're upvoting or downvoting based on parameter
       const endpoint = voteType === 'upvote' 
         ? `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/upvote` 
@@ -86,50 +184,77 @@ const IssueCommentPage = () => {
       if (currentVote === voteType) {
         // User is removing their vote
         if (voteType === 'upvote') {
-          updatedIssue.upvotes--;
-          updatedIssue.netVotes--;
+          updatedIssue.upvotes = (updatedIssue.upvotes || 1) - 1;
+          updatedIssue.netVotes = (updatedIssue.netVotes || 1) - 1;
         } else {
-          updatedIssue.downvotes--;
-          updatedIssue.netVotes++;
+          updatedIssue.downvotes = (updatedIssue.downvotes || 1) - 1;
+          updatedIssue.netVotes = (updatedIssue.netVotes || -1) + 1;
         }
         setUserVote(null);
       } else if (currentVote === null) {
         // User is adding a new vote
         if (voteType === 'upvote') {
-          updatedIssue.upvotes++;
-          updatedIssue.netVotes++;
+          updatedIssue.upvotes = (updatedIssue.upvotes || 0) + 1;
+          updatedIssue.netVotes = (updatedIssue.netVotes || 0) + 1;
         } else {
-          updatedIssue.downvotes++;
-          updatedIssue.netVotes--;
+          updatedIssue.downvotes = (updatedIssue.downvotes || 0) + 1;
+          updatedIssue.netVotes = (updatedIssue.netVotes || 0) - 1;
         }
         setUserVote(voteType);
       } else {
         // User is switching vote type
         if (voteType === 'upvote') {
-          updatedIssue.upvotes++;
-          updatedIssue.downvotes--;
-          updatedIssue.netVotes += 2;
+          updatedIssue.upvotes = (updatedIssue.upvotes || 0) + 1;
+          updatedIssue.downvotes = (updatedIssue.downvotes || 1) - 1;
+          updatedIssue.netVotes = (updatedIssue.netVotes || -1) + 2;
         } else {
-          updatedIssue.downvotes++;
-          updatedIssue.upvotes--;
-          updatedIssue.netVotes -= 2;
+          updatedIssue.downvotes = (updatedIssue.downvotes || 0) + 1;
+          updatedIssue.upvotes = (updatedIssue.upvotes || 1) - 1;
+          updatedIssue.netVotes = (updatedIssue.netVotes || 1) - 2;
         }
         setUserVote(voteType);
       }
       
       setIssue(updatedIssue);
       
-      // Make API call
-      await axios.post(
-        endpoint,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          },
-          withCredentials: true
+      try {
+        // Make API call
+        await axios.post(
+          endpoint,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
+            withCredentials: true
+          }
+        );
+      } catch (voteErr) {
+        console.error(`Primary vote endpoint failed:`, voteErr);
+        
+        // Try alternative endpoint if primary fails
+        if (voteErr.response?.status === 500) {
+          try {
+            // Updated alternative endpoint structure
+            await axios.post(
+              `${API_BASE_URL}/issues/${issueId}/${voteType}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`
+                },
+                withCredentials: true
+              }
+            );
+            console.log("Alternative vote endpoint succeeded");
+          } catch (altErr) {
+            console.error("Alternative vote endpoint also failed:", altErr);
+            throw altErr; // Re-throw to trigger error handling below
+          }
+        } else {
+          throw voteErr; // Re-throw non-500 errors
         }
-      );
+      }
       
     } catch (err) {
       console.error(`Failed to ${voteType} issue:`, err);
@@ -152,7 +277,7 @@ const IssueCommentPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Using the correct endpoint according to the API structure
+      // Updated endpoint structure
       const response = await axios.post(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/comments`,
         { message: newComment },
@@ -183,7 +308,21 @@ const IssueCommentPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      await axios.post(
+      // Optimistically update UI first
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment._id === commentId) {
+            const hasLiked = !comment.hasLiked;
+            const likeCount = hasLiked 
+              ? (comment.likeCount || 0) + 1 
+              : (comment.likeCount || 1) - 1;
+            return { ...comment, hasLiked, likeCount };
+          }
+          return comment;
+        })
+      );
+      
+      const response = await axios.post(
         `${API_BASE_URL}/issues/comments/${commentId}/like`, 
         {},
         {
@@ -194,22 +333,56 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Refetch issue to get updated like counts
-      fetchIssue();
+      // Update with actual server response data
+      const { hasLiked, likeCount } = response.data.data;
+      
+      // Update comments state with server data
+      setComments(prevComments => 
+        prevComments.map(comment => 
+          comment._id === commentId 
+            ? { ...comment, hasLiked, likeCount } 
+            : comment
+        )
+      );
     } catch (err) {
       console.error("Failed to toggle like:", err);
       setError("Failed to toggle like. Please try again later.");
+      
+      // Revert by refreshing comments
+      fetchIssue();
       
       // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
     }
   };
 
-  const handleLikeReply = async (replyId) => {
+  const handleLikeReply = async (commentId, replyId) => {
     try {
       const token = localStorage.getItem('token');
       
-      await axios.post(
+      // Optimistically update UI first
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment._id === commentId) {
+            return {
+              ...comment,
+              replies: (comment.replies || []).map(reply => {
+                if (reply._id === replyId) {
+                  const hasLiked = !reply.hasLiked;
+                  const likeCount = hasLiked 
+                    ? (reply.likeCount || 0) + 1 
+                    : (reply.likeCount || 1) - 1;
+                  return { ...reply, hasLiked, likeCount };
+                }
+                return reply;
+              })
+            };
+          }
+          return comment;
+        })
+      );
+      
+      const response = await axios.post(
         `${API_BASE_URL}/issues/replies/${replyId}/like`, 
         {},
         {
@@ -220,11 +393,31 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Refetch issue to get updated data
-      fetchIssue();
+      // Update with actual server response data
+      const { hasLiked, likeCount } = response.data.data;
+      
+      // Update comments state with server data
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment._id === commentId) {
+            return {
+              ...comment,
+              replies: (comment.replies || []).map(reply => 
+                reply._id === replyId 
+                  ? { ...reply, hasLiked, likeCount } 
+                  : reply
+              )
+            };
+          }
+          return comment;
+        })
+      );
     } catch (err) {
       console.error("Failed to toggle reply like:", err);
       setError("Failed to toggle reply like. Please try again later.");
+      
+      // Revert by refreshing comments
+      fetchIssue();
       
       // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
@@ -238,56 +431,10 @@ const IssueCommentPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Using the correct endpoint according to the API structure
+      // API call to add a reply to a comment
       const response = await axios.post(
         `${API_BASE_URL}/issues/comments/${commentId}/replies`,
         { message: newReply },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          withCredentials: true
-        }
-      );
-      
-      // Optimistically update the UI with the new reply
-      const updatedComments = comments.map(comment => {
-        if (comment._id === commentId) {
-          return {
-            ...comment,
-            replies: [...(comment.replies || []), response.data.data]
-          };
-        }
-        return comment;
-      });
-      
-      setComments(updatedComments);
-      setNewReply("");
-      setSelectedReply(null);
-    } catch (err) {
-      console.error("Failed to post reply:", err);
-      setError("Failed to post reply. Please try again later.");
-      
-      // Refresh the data to ensure consistency
-      fetchIssue();
-      
-      // Clear error after 3 seconds
-      setTimeout(() => setError(null), 3000);
-    } finally {
-      setReplyLoading(false);
-    }
-  };
-
-  const changeIssueStatus = async (status) => {
-    setStatusLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Using the correct endpoint according to the API structure
-      await axios.patch(
-        `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}`,
-        { status },
         {
           headers: {
             "Content-Type": "application/json",
@@ -297,14 +444,62 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Update the issue status locally
-      setIssue(prevIssue => ({
-        ...prevIssue,
-        status
-      }));
+      // Update the comments with the new reply
+      setComments(prevComments => 
+        prevComments.map(comment => {
+          if (comment._id === commentId) {
+            const updatedReplies = [...(comment.replies || []), response.data.data];
+            return { ...comment, replies: updatedReplies };
+          }
+          return comment;
+        })
+      );
+      
+      // Reset reply form
+      setNewReply("");
+      setSelectedReply(null);
+    } catch (err) {
+      console.error("Failed to add reply:", err);
+      setError(err.response?.data?.message || err.message || "Failed to add reply");
+      
+      // Clear error after 3 seconds
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setReplyLoading(false);
+    }
+  };
+
+  const updateIssueStatus = async (newStatus) => {
+    setStatusLoading(true);
+    try {
+      // Only proceed if status endpoint is working
+      if (!apiHealthStatus.statusEndpoint) {
+        setError("Status update functionality is currently unavailable");
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      
+      // Optimistically update UI
+      setIssue(prev => ({ ...prev, status: newStatus }));
+      
+      await axios.patch(
+        `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          withCredentials: true
+        }
+      );
     } catch (err) {
       console.error("Failed to update status:", err);
       setError(err.response?.data?.message || err.message || "Failed to update status");
+      
+      // Revert to original status
+      fetchIssue();
       
       // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
@@ -313,395 +508,347 @@ const IssueCommentPage = () => {
     }
   };
 
-  // Function to check if the current user is a service owner
-  const isServiceOwner = () => {
-    return user && user.role === 'service_owner';
-  };
-
-  // Function to get status badge color
-  const getStatusColor = (status) => {
-    switch(status?.toLowerCase()) {
-      case 'open':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'in-progress':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'resolved':
-        return 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400';
-      case 'closed':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
-      default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
-    }
-  };
-
-  // Format date
+  // Helper function to format date
   const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown date';
-    
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(date);
+    });
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch(status?.toLowerCase()) {
+      case 'open':
+        return 'bg-blue-600/20 text-blue-200 border border-blue-600/40';
+      case 'in progress':
+        return 'bg-amber-600/20 text-amber-200 border border-amber-600/40';
+      case 'resolved':
+        return 'bg-green-600/20 text-green-200 border border-green-600/40';
+      case 'closed':
+        return 'bg-gray-600/20 text-gray-300 border border-gray-600/40';
+      default:
+        return 'bg-blue-600/20 text-blue-200 border border-blue-600/40';
+    }
   };
 
   if (loading) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-20 pb-16">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-            <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-          </div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-[#061426] to-[#0a2341]">
+        <div className="p-6 rounded-xl bg-blue-900/30 backdrop-blur-sm border border-blue-800/30 flex flex-col items-center">
+          <motion.div
+            initial={{ opacity: 0.5 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
+            className="w-12 h-12 border-4 border-blue-500/40 border-t-blue-400 rounded-full animate-spin mb-4"
+          />
+          <p className="text-blue-200">Loading issue details...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !issue) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-20 pb-16">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-6 flex flex-col items-center">
-            <AlertCircle size={48} className="text-red-500 dark:text-red-400 mb-4" />
-            <h2 className="text-xl font-bold text-red-700 dark:text-red-400 mb-2">Error Loading Issue</h2>
-            <p className="text-red-600 dark:text-red-300 text-center">{error}</p>
-            <Link to={`/issues/${serviceId}`} className="mt-4 inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:underline">
-              <ArrowLeft size={16} className="mr-1" /> Back to Issues
-            </Link>
-          </div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-[#061426] to-[#0a2341]">
+        <div className="p-6 rounded-xl bg-red-900/30 backdrop-blur-sm border border-red-800/30 flex flex-col items-center">
+          <AlertCircle size={48} className="text-red-400 mb-4" />
+          <p className="text-red-200 mb-4">{error}</p>
+          <Button onClick={fetchIssue} variant="destructive" className="bg-red-600 hover:bg-red-700">
+            Try Again
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-20 pb-16">
+    <div className="bg-gradient-to-b from-[#061426] to-[#0a2341] min-h-screen pt-20 pb-16 relative overflow-hidden">
+      {/* Background elements - similar to IssuesPage */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute w-[600px] h-[600px] rounded-full bg-[#0a4b8c]/10 blur-[100px] top-[10%] -left-[300px] animate-pulse"></div>
+        <div className="absolute w-[600px] h-[600px] rounded-full bg-[#2a6baf]/10 blur-[100px] bottom-[20%] -right-[300px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute w-[400px] h-[400px] rounded-full bg-[#5396e3]/5 blur-[80px] top-[60%] left-[30%] animate-pulse" style={{ animationDuration: '12s' }}></div>
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-3xl mx-auto px-6"
+        className="max-w-4xl mx-auto px-6 relative z-10"
       >
-        {/* Error message toast */}
-        {error && (
-          <div className="fixed top-20 right-4 z-50 bg-red-100 dark:bg-red-900/70 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded shadow-md">
-            <p>{error}</p>
-          </div>
-        )}
-        
-        {/* Back to issues link */}
-        <Link 
-          to={`/issues/${serviceId}`}
-          className="inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:underline mb-6"
-        >
-          <ArrowLeft size={16} className="mr-1" /> Back to Issues
+        {/* Back button */}
+        <Link to={`/issues/${serviceId}`} className="inline-flex items-center text-blue-300 hover:text-blue-200 transition-colors mb-6">
+          <ArrowLeft size={18} className="mr-2" />
+          Back to Issues
         </Link>
-        
-        {/* Issue details card */}
-        <Card className="mb-8 border border-gray-200 dark:border-gray-700 shadow-md">
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-start mb-4">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">{issue?.title}</h1>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(issue?.status)}`}>
-                {issue?.status}
-              </span>
-            </div>
-            
-            <div className="mb-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{issue?.description}</p>
-            </div>
-            
-            <div className="flex flex-wrap gap-y-4 justify-between items-center text-sm mb-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center text-gray-500 dark:text-gray-400">
-                  <User size={16} className="mr-1" />
-                  <span>Opened by: <span className="font-medium text-gray-700 dark:text-gray-300">
-                    {issue?.openedBy?.username || 'Anonymous'}
-                  </span></span>
+
+        {issue && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Issue details card */}
+            <Card className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm border-blue-800/30 shadow-lg mb-8">
+              <CardContent className="p-6 pt-5">
+                <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
+                  <h1 className="text-2xl font-bold text-blue-100">{issue.title}</h1>
+                  <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(issue.status)}`}>
+                    {issue.status || "Open"}
+                  </span>
                 </div>
-                
-                <div className="flex items-center text-gray-500 dark:text-gray-400">
-                  <Clock size={16} className="mr-1" />
-                  <span>{formatDate(issue?.createdAt)}</span>
+
+                <p className="text-blue-200/90 mb-6 whitespace-pre-line">{issue.description}</p>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-2 pb-4 border-b border-blue-800/30">
+                  <div className="flex items-center gap-3 text-blue-300/80">
+                    <div className="flex items-center">
+                      <User size={16} className="mr-2" />
+                      <span>{issue.author?.username || "Anonymous"}</span>
+                    </div>
+                    {issue.createdAt && (
+                      <div className="flex items-center">
+                        <Clock size={16} className="mr-2" />
+                        <span>{formatDate(issue.createdAt)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="text-blue-300">
+                      <span className="font-medium">{issue.netVotes || 0} votes</span>
+                      <span className="text-sm ml-2 text-blue-400/70">
+                        ({issue.upvotes || 0} up, {issue.downvotes || 0} down)
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Vote controls */}
-              <div className="flex items-center">
-                {user ? (
-                  <div className="flex items-center gap-2">
+
+                {/* Voting buttons */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex gap-3">
                     <Button
-                      variant="ghost"
-                      size="sm"
                       onClick={() => handleVote('upvote')}
                       disabled={voteLoading}
-                      className={`${userVote === 'upvote' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                      className={`flex items-center gap-2 ${
+                        userVote === 'upvote'
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-blue-900/40 hover:bg-blue-800/50 border border-blue-700/50'
+                      }`}
                     >
-                      <ThumbsUp size={16} className="mr-1" />
-                      {issue?.upvotes || 0}
+                      <ThumbsUp size={18} />
+                      Upvote
                     </Button>
+                    
                     <Button
-                      variant="ghost"
-                      size="sm"
                       onClick={() => handleVote('downvote')}
                       disabled={voteLoading}
-                      className={`${userVote === 'downvote' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                      className={`flex items-center gap-2 ${
+                        userVote === 'downvote'
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-blue-900/40 hover:bg-blue-800/50 border border-blue-700/50'
+                      }`}
                     >
-                      <ThumbsDown size={16} className="mr-1" />
-                      {issue?.downvotes || 0}
+                      <ThumbsDown size={18} />
+                      Downvote
                     </Button>
-                    <span className="ml-2 text-gray-700 dark:text-gray-300">
-                      {issue?.netVotes > 0 ? '+' : ''}{issue?.netVotes || 0} votes
-                    </span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
-                    <span className="font-medium">{issue?.netVotes || 0} votes</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      ({issue?.upvotes || 0} up / {issue?.downvotes || 0} down)
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Status change buttons - only for service owners */}
-            {isServiceOwner() && (
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Update Issue Status:</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => changeIssueStatus("open")}
-                    disabled={statusLoading || issue?.status === 'open'}
-                    variant={issue?.status === 'open' ? 'default' : 'outline'}
-                    className={issue?.status === 'open' ? 'bg-green-600 hover:bg-green-700' : 'border-green-200 text-green-700 hover:bg-green-50'}
-                  >
-                    Open
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => changeIssueStatus("in-progress")}
-                    disabled={statusLoading || issue?.status === 'in-progress'}
-                    variant={issue?.status === 'in-progress' ? 'default' : 'outline'}
-                    className={issue?.status === 'in-progress' ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-200 text-blue-700 hover:bg-blue-50'}
-                  >
-                    In Progress
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => changeIssueStatus("resolved")}
-                    disabled={statusLoading || issue?.status === 'resolved'}
-                    variant={issue?.status === 'resolved' ? 'default' : 'outline'}
-                    className={issue?.status === 'resolved' ? 'bg-violet-600 hover:bg-violet-700' : 'border-violet-200 text-violet-700 hover:bg-violet-50'}
-                  >
-                    Resolved
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => changeIssueStatus("closed")}
-                    disabled={statusLoading || issue?.status === 'closed'}
-                    variant={issue?.status === 'closed' ? 'default' : 'outline'}
-                    className={issue?.status === 'closed' ? 'bg-gray-600 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}
-                  >
-                    Closed
-                  </Button>
+
+                  {/* Status update dropdown for admins/moderators */}
+                  {user && user.role === 'service_owner' && (
+                    <div className="flex items-center">
+                      <select
+                        value={issue.status || 'Open'}
+                        onChange={(e) => updateIssueStatus(e.target.value)}
+                        disabled={statusLoading}
+                        className="px-3 py-2 rounded-lg bg-blue-900/40 border border-blue-700/50 text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      >
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Comments section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-            <MessageCircle size={20} className="mr-2" />
-            Comments ({comments.length})
-          </h2>
-          
-          {comments.length === 0 ? (
-            <Card className="border border-gray-200 dark:border-gray-700">
-              <CardContent className="py-8 flex flex-col items-center justify-center text-center">
-                <MessageCircle size={32} className="text-gray-400 mb-3" />
-                <p className="text-gray-500 dark:text-gray-400">No comments yet</p>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Be the first to comment on this issue</p>
               </CardContent>
             </Card>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((comment, index) => (
-                <motion.div
-                  key={comment._id || index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                >
-                  <Card className="border border-gray-200 dark:border-gray-700">
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-semibold">
-                            {comment.user?.username?.[0]?.toUpperCase() || 'U'}
+
+            {/* Comments section */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-blue-100 mb-4 flex items-center">
+                <MessageCircle size={20} className="mr-2" />
+                Comments ({comments.length})
+              </h2>
+
+              {/* Comment list */}
+              {comments.length > 0 ? (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <motion.div
+                      key={comment._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-gradient-to-br from-blue-900/20 to-blue-950/30 backdrop-blur-sm rounded-xl border border-blue-800/30 overflow-hidden"
+                    >
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center text-blue-300/80">
+                            <User size={16} className="mr-2" />
+                            <span>{comment.author?.username || "Anonymous"}</span>
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-800 dark:text-white">
-                              {comment.user?.username || 'Anonymous'}
-                            </p>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs">
+                          {comment.createdAt && (
+                            <div className="text-blue-400/70 text-sm">
                               {formatDate(comment.createdAt)}
-                            </p>
-                          </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
+
+                        <p className="text-blue-200 mb-3 whitespace-pre-line">{comment.message}</p>
+
+                        <div className="flex items-center justify-between">
+                          <Button
                             onClick={() => handleLikeComment(comment._id)}
-                            className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            disabled={!user}
+                            variant="ghost"
+                            className={`text-blue-300 hover:text-blue-200 px-2 py-1 h-auto ${
+                              comment.hasLiked ? 'text-blue-400' : ''
+                            }`}
                           >
-                            <ThumbsUp size={16} className={`mr-2 ${comment.hasLiked ? 'text-blue-500 fill-blue-500' : ''}`} />
+                            <ThumbsUp size={16} className="mr-1" />
                             {comment.likeCount || 0}
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
+
+                          <Button
                             onClick={() => setSelectedReply(selectedReply === comment._id ? null : comment._id)}
-                            className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            disabled={!user}
+                            variant="ghost"
+                            className="text-blue-300 hover:text-blue-200 px-2 py-1 h-auto"
                           >
                             Reply
                           </Button>
                         </div>
-                      </div>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line pl-11">
-                        {comment.message}
-                      </p>
-                      
-                      {/* Reply Form */}
-                      {selectedReply === comment._id && (
-                        <div className="mt-4 pl-11">
-                          <Textarea
-                            value={newReply}
-                            onChange={(e) => setNewReply(e.target.value)}
-                            placeholder="Write a reply..."
-                            className="mb-2"
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedReply(null);
-                                setNewReply("");
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              size="sm"
-                              onClick={() => handleReply(comment._id)}
-                              disabled={replyLoading || !newReply.trim()}
-                            >
-                              {replyLoading ? 'Posting...' : 'Post Reply'}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
 
-                      {/* Replies */}
-                      {comment.replies?.length > 0 && (
-                        <div className="mt-4 pl-11 space-y-3">
-                          {comment.replies.map((reply, replyIndex) => (
-                            <div 
-                              key={reply._id || `reply-${replyIndex}`} 
-                              className="border-l-2 border-gray-200 dark:border-gray-700 pl-3 py-2"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs text-blue-700 dark:text-blue-300 font-semibold">
-                                    {reply.user?.username?.[0]?.toUpperCase() || 'U'}
-                                  </div>
-                                  <p className="font-medium text-sm text-gray-800 dark:text-white">
-                                    {reply.user?.username || 'Anonymous'}
-                                  </p>
-                                  <p className="text-gray-500 dark:text-gray-400 text-xs">
-                                    {formatDate(reply.createdAt)}
-                                  </p>
-                                </div>
-                                {user && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="xs"
-                                    onClick={() => handleLikeReply(reply._id)}
-                                    className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 h-6 px-2"
-                                  >
-                                    <ThumbsUp size={12} className={`mr-1 ${reply.hasLiked ? 'text-blue-500 fill-blue-500' : ''}`} />
-                                    {reply.likeCount || 0}
-                                  </Button>
-                                )}
-                              </div>
-                              <p className="text-gray-700 dark:text-gray-300 text-sm pl-9">
-                                {reply.message}
-                              </p>
+                        {/* Reply form */}
+                        {selectedReply === comment._id && (
+                          <div className="mt-3 pl-4 border-l-2 border-blue-800/50">
+                            <Textarea
+                              value={newReply}
+                              onChange={(e) => setNewReply(e.target.value)}
+                              placeholder="Write a reply..."
+                              className="w-full bg-blue-900/20 border border-blue-800/50 text-blue-200 placeholder-blue-400/70 mb-2"
+                            />
+                            <div className="flex justify-end">
+                              <Button
+                                onClick={() => handleReply(comment._id)}
+                                disabled={replyLoading}
+                                className="bg-blue-700 hover:bg-blue-600 text-white"
+                              >
+                                {replyLoading ? 'Sending...' : 'Reply'}
+                              </Button>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                          </div>
+                        )}
+
+                        {/* Replies list */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <div className="mt-3 pl-4 border-l-2 border-blue-800/50 space-y-3">
+{comment.replies.map((reply) => (
+                              <div key={reply._id} className="bg-blue-900/20 rounded-lg p-3">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex items-center text-blue-300/80">
+                                    <User size={14} className="mr-1.5" />
+                                    <span className="text-sm">{reply.author?.username || "Anonymous"}</span>
+                                  </div>
+                                  {reply.createdAt && (
+                                    <div className="text-blue-400/70 text-xs">
+                                      {formatDate(reply.createdAt)}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <p className="text-blue-200 text-sm mb-2">{reply.message}</p>
+                                
+                                <Button
+                                  onClick={() => handleLikeReply(comment._id, reply._id)}
+                                  variant="ghost"
+                                  className={`text-blue-300 hover:text-blue-200 px-2 py-1 h-auto text-xs ${
+                                    reply.hasLiked ? 'text-blue-400' : ''
+                                  }`}
+                                >
+                                  <ThumbsUp size={14} className="mr-1" />
+                                  {reply.likeCount || 0}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 bg-gradient-to-br from-blue-900/20 to-blue-950/30 backdrop-blur-sm rounded-xl border border-blue-800/30">
+                  <p className="text-blue-300">No comments yet. Be the first to comment!</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Add comment form */}
+            <Card className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm border-blue-800/30 shadow-lg mb-8">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-medium text-blue-100 mb-4">Leave a Comment</h3>
+                
+                {user ? (
+                  <>
+                    <Textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Write your comment here..."
+                      className="w-full bg-blue-900/20 border border-blue-800/50 text-blue-200 placeholder-blue-400/70 mb-4"
+                      rows={4}
+                    />
+                    
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={addComment}
+                        disabled={commentLoading}
+                        className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Send size={18} />
+                        {commentLoading ? 'Sending...' : 'Post Comment'}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-6">
+                    <p className="text-blue-300 mb-4">You need to be logged in to comment</p>
+                    <Link to="/login" className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                      Login to Comment
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
         
-        {/* Add comment form */}
-        {user ? (
-          <Card className="border border-gray-200 dark:border-gray-700">
-            <CardContent className="pt-4">
-              <h3 className="text-md font-medium text-gray-800 dark:text-white mb-3">Add your comment</h3>
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
-                className="mb-3 min-h-24 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:border-indigo-500 focus:ring-indigo-500"
-              />
-              <div className="flex justify-end">
-                <Button 
-                  onClick={addComment} 
-                  disabled={!newComment.trim() || commentLoading}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {commentLoading ? (
-                    <>Processing...</>
-                  ) : (
-                    <>
-                      <Send size={16} className="mr-2" /> Add Comment
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <CardContent className="py-8 flex flex-col items-center justify-center text-center">
-              <p className="text-gray-700 dark:text-gray-300 mb-3">You need to be logged in to comment</p>
-              <Link 
-                to="/login" 
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors"
-              >
-                Log in to comment
-              </Link>
-            </CardContent>
-          </Card>
+        {/* Error toast notification */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-red-900/90 text-red-200 px-6 py-3 rounded-lg shadow-lg backdrop-blur-sm border border-red-700/50 flex items-center"
+          >
+            <AlertCircle size={20} className="mr-2 text-red-400" />
+            {error}
+          </motion.div>
         )}
       </motion.div>
     </div>

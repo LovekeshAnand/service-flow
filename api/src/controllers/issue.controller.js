@@ -5,6 +5,7 @@ import { Issue } from "../models/issueSchema.model.js";
 import { Comment } from "../models/commentSchema.model.js";
 import { Like } from "../models/likeSchema.model.js";
 import { Vote } from "../models/voteSchema.model.js";
+import { Service } from "../models/serviceSchema.model.js";
 
 /** ✅ 1. Get All Issues for a Specific Service */
 const getAllIssuesForService = asyncHandler(async (req, res) => {
@@ -46,20 +47,72 @@ const getIssueById = asyncHandler(async (req, res) => {
     const { serviceId, issueId } = req.params;
     const userId = req.user?._id;
 
+    // Start building the issue with its base data
     const issue = await Issue.findOne({ _id: issueId, service: serviceId })
-        .populate("openedBy", "username")
-        .populate({
-            path: "comments",
-            populate: [
-                { path: "user", select: "username" },
-                { path: "replies", populate: { path: "user", select: "username" } }
-            ]
-        });
-
+        .populate("openedBy", "username");
+    
     if (!issue) {
         throw new ApiError(404, "Issue not found.");
     }
-
+    
+    // Get the comments for this issue
+    const comments = await Comment.find({ _id: { $in: issue.comments } })
+        .populate("user", "username");
+    
+    // For each comment, fetch its replies and add like information
+    const commentsWithLikes = await Promise.all(comments.map(async (comment) => {
+        // Get replies for this comment
+        const replies = await Comment.find({ _id: { $in: comment.replies } })
+            .populate("user", "username");
+        
+        // Get like counts for each reply
+        const repliesWithLikes = await Promise.all(replies.map(async (reply) => {
+            const likeCount = await Like.countDocuments({ 
+                targetId: reply._id, 
+                targetType: "Reply" 
+            });
+            
+            // Check if current user has liked this reply
+            let hasLiked = false;
+            if (userId) {
+                hasLiked = await Like.exists({ 
+                    targetId: reply._id, 
+                    targetType: "Reply",
+                    user: userId 
+                });
+            }
+            
+            return {
+                ...reply.toObject(),
+                likeCount,
+                hasLiked: !!hasLiked
+            };
+        }));
+        
+        // Get like count for this comment
+        const likeCount = await Like.countDocuments({ 
+            targetId: comment._id, 
+            targetType: "Comment" 
+        });
+        
+        // Check if current user has liked this comment
+        let hasLiked = false;
+        if (userId) {
+            hasLiked = await Like.exists({ 
+                targetId: comment._id, 
+                targetType: "Comment",
+                user: userId 
+            });
+        }
+        
+        return {
+            ...comment.toObject(),
+            replies: repliesWithLikes,
+            likeCount,
+            hasLiked: !!hasLiked
+        };
+    }));
+    
     // Get the current user's vote on this issue, if any
     let userVote = null;
     if (userId) {
@@ -73,11 +126,13 @@ const getIssueById = asyncHandler(async (req, res) => {
     // Add userVote to the response
     const responseData = {
         ...issue.toObject(),
+        comments: commentsWithLikes,
         userVote: userVote ? userVote.voteType : null
     };
 
     return res.status(200).json(new ApiResponse(200, responseData, "Issue details retrieved successfully."));
 });
+
 
 /** ✅ 3. Create an Issue for a Specific Service */
 const createIssue = asyncHandler(async (req, res) => {
@@ -187,13 +242,33 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     const existingLike = await Like.findOne({ user: userId, targetId: commentId, targetType: "Comment" });
 
-    if (existingLike) {
-        await Like.findByIdAndDelete(existingLike._id);
-        return res.status(200).json(new ApiResponse(200, {}, "Comment unliked."));
+    // Check if comment exists
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+        throw new ApiError(404, "Comment not found.");
     }
 
-    const like = await Like.create({ user: userId, targetId: commentId, targetType: "Comment" });
-    return res.status(201).json(new ApiResponse(201, like, "Comment liked."));
+    let action = "";
+    let hasLiked = false;
+
+    if (existingLike) {
+        // User is unliking
+        await Like.findByIdAndDelete(existingLike._id);
+        action = "unliked";
+        hasLiked = false;
+    } else {
+        // User is liking
+        await Like.create({ user: userId, targetId: commentId, targetType: "Comment" });
+        action = "liked";
+        hasLiked = true;
+    }
+
+    // Get the updated like count
+    const likeCount = await Like.countDocuments({ targetId: commentId, targetType: "Comment" });
+
+    return res.status(200).json(
+        new ApiResponse(200, { hasLiked, likeCount }, `Comment ${action}.`)
+    );
 });
 
 /** ✅ 8. Like/Unlike a Reply */
@@ -201,15 +276,35 @@ const toggleReplyLike = asyncHandler(async (req, res) => {
     const { replyId } = req.params;
     const userId = req.user._id;
 
-    const existingLike = await Like.findOne({ user: userId, targetId: replyId, targetType: "Reply" });
-
-    if (existingLike) {
-        await Like.findByIdAndDelete(existingLike._id);
-        return res.status(200).json(new ApiResponse(200, {}, "Reply unliked."));
+    // Check if reply exists
+    const reply = await Comment.findById(replyId);
+    if (!reply) {
+        throw new ApiError(404, "Reply not found.");
     }
 
-    const like = await Like.create({ user: userId, targetId: replyId, targetType: "Reply" });
-    return res.status(201).json(new ApiResponse(201, like, "Reply liked."));
+    const existingLike = await Like.findOne({ user: userId, targetId: replyId, targetType: "Reply" });
+
+    let action = "";
+    let hasLiked = false;
+
+    if (existingLike) {
+        // User is unliking
+        await Like.findByIdAndDelete(existingLike._id);
+        action = "unliked";
+        hasLiked = false;
+    } else {
+        // User is liking
+        await Like.create({ user: userId, targetId: replyId, targetType: "Reply" });
+        action = "liked";
+        hasLiked = true;
+    }
+
+    // Get the updated like count
+    const likeCount = await Like.countDocuments({ targetId: replyId, targetType: "Reply" });
+
+    return res.status(200).json(
+        new ApiResponse(200, { hasLiked, likeCount }, `Reply ${action}.`)
+    );
 });
 
 /** ✅ 9. Update a Comment (Only Owner) */
@@ -253,6 +348,48 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, {}, "Comment deleted successfully."));
 });
+
+const updateIssueStatus = asyncHandler(async (req, res) => {
+    const { serviceId, issueId } = req.params;
+    const { status } = req.body;
+    
+    const userId = req.user?._id || req.service?._id; // ✅ Handle both user & service IDs
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: User/Service ID is missing" });
+    }
+
+    // Validate status
+    const validStatuses = ['open', 'in-progress', 'resolved', 'closed'];
+    if (!validStatuses.includes(status)) {
+      throw new ApiError(400, "Invalid status value");
+    }
+
+    // Find service and check ownership
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      throw new ApiError(404, "Service not found");
+    }
+
+    // Check if the authenticated entity is the service itself
+    if (service._id.toString() !== userId.toString()) {
+      throw new ApiError(403, "Only service owners can update issue status");
+    }
+
+    // Update issue
+    const issue = await Issue.findOneAndUpdate(
+      { _id: issueId, service: serviceId },
+      { status },
+      { new: true }
+    );
+
+    if (!issue) {
+      throw new ApiError(404, "Issue not found");
+    }
+
+    return res.status(200).json(new ApiResponse(200, issue, "Issue status updated successfully"));
+});
+
 
 /** ✅ 11. Upvote an Issue */
 const upvoteIssue = asyncHandler(async (req, res) => {
@@ -372,19 +509,24 @@ const downvoteIssue = asyncHandler(async (req, res) => {
     }
 });
 
-/** ✅ 13. Get User's Vote on a Feedback */
 const getUserVote = asyncHandler(async (req, res) => {
+
     const { issueId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user?._id || req.service?._id; // ✅ Handle both user & service IDs
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: User/Service ID is missing" });
+    }
 
     const vote = await Vote.findOne({ user: userId, issue: issueId });
-    
+
     if (!vote) {
         return res.status(200).json(new ApiResponse(200, { voteType: null }, "User has not voted on this issue."));
     }
-    
+
     return res.status(200).json(new ApiResponse(200, { voteType: vote.voteType }, "User's vote retrieved successfully."));
 });
+
 
 export {
     getAllIssuesForService,
@@ -399,5 +541,6 @@ export {
     deleteComment,
     upvoteIssue,
     downvoteIssue,
-    getUserVote
+    getUserVote,
+    updateIssueStatus
 }

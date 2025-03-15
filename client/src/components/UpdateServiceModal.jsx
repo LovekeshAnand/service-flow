@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Upload, Check } from 'lucide-react';
+import { X, Upload, Check, Briefcase, Mail, Link, FileText, Lock, Image } from 'lucide-react';
 import { toast } from "sonner";
 
 const UpdateServiceModal = ({
@@ -25,6 +24,53 @@ const UpdateServiceModal = ({
   const [logoPreview, setLogoPreview] = useState(initialData.logo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
+  const modalRef = useRef(null);
+  const [animateIn, setAnimateIn] = useState(false);
+  
+  // Handle animation timing
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to trigger animations after modal appears
+      setTimeout(() => setAnimateIn(true), 50);
+    } else {
+      setAnimateIn(false);
+    }
+  }, [isOpen]);
+
+  // Close modal when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target) && isOpen) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isOpen, onClose]);
+
+  // Handle escape key press
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === "Escape" && isOpen) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscKey);
+    return () => {
+      document.removeEventListener("keydown", handleEscKey);
+    };
+  }, [isOpen, onClose]);
+
+  const handleClose = () => {
+    // Set animateIn to false to trigger exit animations
+    setAnimateIn(false);
+    // Delay actual closing to allow exit animations to play
+    setTimeout(() => onClose(), 300);
+  };
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -81,16 +127,7 @@ const UpdateServiceModal = ({
       
       // Reset form state
       setIsSubmitting(false);
-      setFormData({
-        serviceName: '',
-        email: '',
-        description: '',
-        serviceLink: '',
-        newPassword: '',
-        currentPassword: '',
-      });
-      setLogoFile(null);
-      setLogoPreview(null);
+      handleClose();
       
     } catch (error) {
       setIsSubmitting(false);
@@ -118,213 +155,221 @@ const UpdateServiceModal = ({
     }
   };
   
-  // Animation variants
-  const modalVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: "easeOut" } },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: "easeIn" } }
-  };
-  
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-    exit: { opacity: 0, transition: { duration: 0.2 } }
-  };
-  
   if (!isOpen) return null;
   
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          variants={backdropVariants}
+    <div className={`fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-lg transition-opacity duration-300 ${animateIn ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Animated background elements */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Animated gradient circles */}
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-gray-900/20 blur-[100px] top-[10%] -left-[200px] animate-pulse"></div>
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-gray-800/20 blur-[100px] bottom-[20%] -right-[200px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+        
+        {/* Animated lines */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent opacity-30"></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent transform translate-y-[40vh] opacity-30"></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent transform translate-y-[80vh] opacity-30"></div>
+        </div>
+        
+        {/* Animated particles */}
+        {[...Array(12)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-gray-500/30"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              opacity: 0.2 + Math.random() * 0.5,
+              animation: `float${i % 3 + 1} ${8 + Math.random() * 15}s infinite ease-in-out`
+            }}
+          ></div>
+        ))}
+      </div>
+
+      <div 
+        ref={modalRef}
+        className={`max-w-md w-full bg-gradient-to-br from-black to-gray-900/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl shadow-gray-900/50 border border-gray-800/30 relative transition-all duration-500 
+        ${animateIn ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}
+      >
+        {/* Decorative corner accents */}
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-gray-500/30 rounded-tl-2xl"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-gray-500/30 rounded-br-2xl"></div>
+        
+        {/* Glowing orbs decoration */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gray-500/10 blur-xl"></div>
+        <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-gray-600/10 blur-xl"></div>
+        
+        {/* Close button with animation */}
+        <button
+          onClick={handleClose}
+          className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/50 hover:bg-gray-700/60 transition-all duration-300 hover:rotate-90 transform border border-gray-700/30 group z-10"
+          aria-label="Close"
         >
-          <motion.div 
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            variants={modalVariants}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Update Service</h2>
-                <Button 
-                  onClick={onClose} 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-full h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+          <X className="h-4 w-4 text-gray-100 group-hover:text-white" />
+        </button>
+        
+        <div className="text-center mb-8 relative">
+          <h2 className={`text-2xl font-bold text-white transition-all duration-500 ${animateIn ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+            Update Service
+            <div className="mt-2 mx-auto w-16 h-1 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full"></div>
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Briefcase className="h-5 w-5 text-gray-400" />
               </div>
-              
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Service Name
-                  </label>
-                  <Input
-                    name="serviceName"
-                    value={formData.serviceName}
-                    onChange={handleInputChange}
-                    placeholder="Service name"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Email address"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Service Link
-                  </label>
-                  <Input
-                    name="serviceLink"
-                    value={formData.serviceLink}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Description
-                  </label>
-                  <Textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Describe your service"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[100px]"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    New Password (Optional)
-                  </label>
-                  <Input
-                    type="password"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleInputChange}
-                    placeholder="Leave blank to keep current password"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Current Password
-                  </label>
-                  <Input
-                    type="password"
-                    name="currentPassword"
-                    value={formData.currentPassword}
-                    onChange={handleInputChange}
-                    placeholder="Required to confirm changes"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Logo
-                  </label>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                      {logoPreview ? (
-                        <img 
-                          src={logoPreview} 
-                          alt="Logo preview" 
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-gray-400">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <input 
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    
-                    <Button 
-                      type="button"
-                      onClick={triggerFileInput}
-                      className="flex items-center gap-2 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Upload New Logo
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2 transition-colors"
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Updating...
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        <Check className="h-4 w-4" />
-                        Save Changes
-                      </span>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      resetForm();
-                      onClose();
-                    }}
-                    variant="outline"
-                    className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl py-2"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
+              <Input 
+                name="serviceName" 
+                placeholder="Service Name" 
+                value={formData.serviceName} 
+                onChange={handleInputChange} 
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                type="email" 
+                name="email" 
+                placeholder="Email" 
+                value={formData.email} 
+                onChange={handleInputChange} 
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Link className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                name="serviceLink" 
+                placeholder="Service Website URL" 
+                value={formData.serviceLink} 
+                onChange={handleInputChange} 
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
+            </div>
+            <div className="relative">
+              <div className="absolute top-4 left-0 pl-4 flex items-start pointer-events-none">
+                <FileText className="h-5 w-5 text-gray-400" />
+              </div>
+              <Textarea 
+                name="description" 
+                placeholder="Service Description" 
+                value={formData.description} 
+                onChange={handleInputChange} 
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 pt-3 pb-3 min-h-[120px] text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                type="password" 
+                name="newPassword" 
+                placeholder="New Password (Optional)" 
+                value={formData.newPassword} 
+                onChange={handleInputChange} 
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input 
+                type="password" 
+                name="currentPassword" 
+                placeholder="Current Password (Required)" 
+                value={formData.currentPassword} 
+                onChange={handleInputChange} 
+                className="bg-gray-950/50 border border-gray-700/30 rounded-xl pl-12 py-6 text-gray-100 placeholder:text-gray-400/60 focus:ring-2 focus:ring-gray-500/40 focus:border-gray-600/40"
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-200 flex items-center">
+                <Image className="h-5 w-5 text-gray-400 mr-2" />
+                Service Logo
+              </label>
+              <div className="flex flex-col items-center">
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange} 
+                  className="hidden" 
+                  id="logo-upload" 
+                />
+                
+                <div className="flex items-center space-x-4">
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-700/50 flex items-center justify-center bg-gray-900/50">
+                    {logoPreview ? (
+                      <img 
+                      src={logoPreview} 
+                      alt="Logo Preview" 
+                      className="object-contain w-full h-full" 
+                    />
+                  ) : (
+                    <div className="text-gray-400 flex items-center justify-center">
+                      <Image className="h-8 w-8" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="w-full flex flex-col items-center px-4 py-3 border-2 border-dashed border-gray-700/50 rounded-xl text-center hover:bg-gray-800/20 transition-all cursor-pointer group"
+                  onClick={triggerFileInput}>
+                  <Upload className="w-6 h-6 text-gray-400 group-hover:scale-110 transition-transform" />
+                  <span className="mt-1 text-sm text-gray-300 group-hover:text-gray-200 transition-colors">Upload new logo</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="pt-6 space-y-3">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full py-6 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white border border-gray-500/30 shadow-lg shadow-gray-600/20 hover:shadow-gray-500/30 group"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-gray-200 border-t-transparent rounded-full animate-spin mr-2"></div>
+                Updating...
+              </span>
+            ) : (
+              <span className="flex items-center justify-center">
+                <Check className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+                Save Changes
+              </span>
+            )}
+          </Button>
+          <Button 
+            type="button" 
+            onClick={() => { resetForm(); handleClose(); }} 
+            className="w-full py-6 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-red-600/80 to-red-500/80 hover:from-red-500 hover:to-red-400 text-white border border-red-500/30 group"
+          >
+            <span className="flex items-center justify-center">
+              <X className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
+              Cancel
+            </span>
+          </Button>
+        </div>
+      </form>
+    </div>
+  </div>
+);
 };
 
-export default UpdateServiceModal
+export default UpdateServiceModal;

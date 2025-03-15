@@ -220,6 +220,17 @@ const updateUser = asyncHandler(async (req, res) => {
 
   await user.save();
 
+  // ✅ Fetch feedback and issue counts for the user
+  const feedbacks = await Feedback.aggregate([
+    { $match: { userId: user._id } },
+    { $group: { _id: "$serviceId", count: { $sum: 1 } } }
+  ]);
+
+  const issues = await Issue.aggregate([
+    { $match: { userId: user._id } },
+    { $group: { _id: "$serviceId", count: { $sum: 1 } } }
+  ]);
+
 
   // ✅ Format response to show Service IDs & Counts
   const userStats = {

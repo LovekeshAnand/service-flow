@@ -1,21 +1,23 @@
 import express from "express";
 import { verifyJWT } from "../middleware/auth.middleware.js";
-import {
-    getAllIssuesForService,
-    getIssueById,
-    createIssue,
-    deleteIssue,
-    addComment,
-    replyToComment,
-    toggleCommentLike,
-    toggleReplyLike,
-    updateComment,
-    deleteComment,
-    upvoteIssue,
-    downvoteIssue,
-    getUserVote
+import { 
+  getAllIssuesForService, 
+  getIssueById, 
+  createIssue, 
+  deleteIssue, 
+  addComment, 
+  replyToComment, 
+  toggleCommentLike, 
+  toggleReplyLike, 
+  updateComment, 
+  deleteComment, 
+  upvoteIssue, 
+  downvoteIssue, 
+  getUserVote, 
+  updateIssueStatus 
 } from "../controllers/issue.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js"; // Make sure to import asyncHandler
 
 const router = express.Router();
 
@@ -38,9 +40,18 @@ router.post("/service/:serviceId/issues/:issueId/upvote", verifyJWT, upvoteIssue
 // ✅ Downvote an issue (Protected)
 router.post("/service/:serviceId/issues/:issueId/downvote", verifyJWT, downvoteIssue);
 
+// Add support for both PATCH and HEAD methods
+router.route("/service/:serviceId/issues/:issueId/status")
+  .patch(verifyJWT, updateIssueStatus)
+  .head(verifyJWT, (req, res) => res.status(200).end());
+
 // ✅ Get user's vote on an issue (Protected)
 router.get("/service/:serviceId/issues/:issueId/vote", verifyJWT, getUserVote);
 
+// Add HEAD method for vote checking
+router.head("/service/:serviceId/issues/:issueId/vote", verifyJWT, (req, res) => {
+    res.status(200).end();
+});
 /** 🔹 COMMENTS & REPLIES ON ISSUES 🔹 */
 // ✅ Add a comment to an issue (Protected)
 router.post("/service/:serviceId/issues/:issueId/comments", verifyJWT, upload.none(), addComment);

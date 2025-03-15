@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -11,6 +11,7 @@ const API_BASE_URL = "http://localhost:8000/api/v1";
 
 export default function UserIssuesPage() {
   const { userId } = useParams();
+  const navigate = useNavigate();
   
   const [issues, setIssues] = useState([]);
   const [search, setSearch] = useState("");
@@ -25,8 +26,9 @@ export default function UserIssuesPage() {
     totalIssues: 0
   });
   const debouncedSearch = useDebounce(search, 300);
+  const [isVisible, setIsVisible] = useState(false);
+  const scrollY = useRef(0);
 
-  // Add logging to track component mounting and userId
   useEffect(() => {
     console.log("Component mounted with userId:", userId);
     if (userId) {
@@ -35,6 +37,23 @@ export default function UserIssuesPage() {
       console.error("No userId available in params");
     }
   }, [userId, debouncedSearch, sortBy, sortOrder, status, pagination.currentPage]);
+
+  useEffect(() => {
+    // Animation timing and scroll tracking
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 300);
+
+    const handleScroll = () => {
+      scrollY.current = window.scrollY;
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   async function fetchUserIssues() {
     setLoading(true);
@@ -105,26 +124,39 @@ export default function UserIssuesPage() {
     }
   }
 
+  // Function to handle issue card click and navigate to issue detail page
+  const handleIssueClick = (issue) => {
+    // Check if service data is available and get serviceId
+    if (issue.service && issue.service._id) {
+      navigate(`/services/${issue.service._id}/issues/${issue._id}`);
+    } else {
+      // Fallback if service data is not available
+      console.warn("Service information not available for this issue", issue);
+      // You could redirect to a general issue page as fallback
+      navigate(`/issues/${issue._id}`);
+    }
+  };
+
   // Function to display status with the correct format
   const formatStatus = (status) => {
     if (status === "in-progress") return "In Progress";
     return status ? status.charAt(0).toUpperCase() + status.slice(1) : "";
   };
 
-  // Function to get status badge color
+  // Function to get status badge color - updated to match IssuesPage styling 
   const getStatusColor = (status) => {
     switch(status?.toLowerCase()) {
       case 'open':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-blue-600/20 text-blue-200 border border-blue-600/40';
       case 'in-progress':
       case 'in progress':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-amber-600/20 text-amber-200 border border-amber-600/40';
       case 'resolved':
-        return 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400';
+        return 'bg-green-600/20 text-green-200 border border-green-600/40';
       case 'closed':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+        return 'bg-gray-600/20 text-gray-300 border border-gray-600/40';
       default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+        return 'bg-blue-600/20 text-blue-200 border border-blue-600/40';
     }
   };
 
@@ -134,44 +166,96 @@ export default function UserIssuesPage() {
       initial={{ opacity: 0.5 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
-      className="bg-gray-100 dark:bg-gray-800 rounded-xl h-28 w-full"
+      className="bg-gradient-to-br from-blue-900/20 to-blue-950/30 backdrop-blur-sm rounded-xl h-32 w-full border border-blue-800/30"
     />
   );
 
+  // Format date function
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pt-20 pb-16">
+    <div className="bg-gradient-to-b from-[#061426] to-[#0a2341] min-h-screen pt-20 pb-16 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Animated gradient circles */}
+        <div className="absolute w-[600px] h-[600px] rounded-full bg-[#0a4b8c]/10 blur-[100px] top-[10%] -left-[300px] animate-pulse"></div>
+        <div className="absolute w-[600px] h-[600px] rounded-full bg-[#2a6baf]/10 blur-[100px] bottom-[20%] -right-[300px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute w-[400px] h-[400px] rounded-full bg-[#5396e3]/5 blur-[80px] top-[60%] left-[30%] animate-pulse" style={{ animationDuration: '12s' }}></div>
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+        
+        {/* Animated lines */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform opacity-30" style={{ transform: `translateY(${20 + scrollY.current * 0.5}vh)` }}></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform opacity-30" style={{ transform: `translateY(${40 + scrollY.current * 0.3}vh)` }}></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform opacity-30" style={{ transform: `translateY(${60 + scrollY.current * 0.2}vh)` }}></div>
+        </div>
+        
+        {/* Animated particles */}
+        {[...Array(20)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-blue-500/30"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              opacity: 0.2 + Math.random() * 0.5,
+              animation: `float${i % 3 + 1} ${8 + Math.random() * 15}s infinite ease-in-out`
+            }}
+          ></div>
+        ))}
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-4xl mx-auto px-6"
+        className="max-w-4xl mx-auto px-6 relative z-10"
       >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-violet-700 dark:text-violet-400 mb-3">
+        {/* Header with enhanced styling */}
+        <div className="text-center mb-10">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : -20 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="inline-block px-4 py-2 bg-blue-900/30 rounded-full text-blue-200 text-sm font-medium mb-6 border border-blue-800/40 backdrop-blur-sm"
+          >
+            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></span>
+            My Issues & Feedback
+          </motion.div>
+
+          <motion.h1 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isVisible ? 1 : 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
+            className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#5396e3] to-[#9ecbff]"
+          >
             My Issues
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isVisible ? 1 : 0 }}
+            transition={{ duration: 1, delay: 0.4 }}
+            className="text-blue-200/90 max-w-2xl mx-auto"
+          >
             Browse all issues you've created across different services.
-          </p>
+          </motion.p>
         </div>
         
-        {/* Debug information - only visible during development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <h3 className="font-medium text-yellow-800 dark:text-yellow-400">Debug Info:</h3>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">UserId: {userId || 'Not set'}</p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">Has token: {localStorage.getItem('token') ? 'Yes' : 'No'}</p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">Filter status: {status || 'None'}</p>
-          </div>
-        )}
-        
-        {/* Search and Filter Bar */}
+        {/* Search and Filter Bar with enhanced styling */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-2xl shadow-md mb-6"
+          className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm p-4 md:p-6 rounded-2xl shadow-lg mb-8 border border-blue-800/30"
         >
           <div className="flex flex-col space-y-4">
             <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -181,24 +265,27 @@ export default function UserIssuesPage() {
                   placeholder="Search issues..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full p-3 pl-10 rounded-lg bg-white dark:bg-gray-700 border border-violet-300 dark:border-violet-600 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition"
+                  className="w-full p-3 pl-10 rounded-lg bg-blue-900/20 backdrop-blur-sm border border-blue-700/50 text-blue-100 placeholder-blue-300/70 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition"
                 />
-                <Search className="absolute left-3 top-3.5 text-gray-400 dark:text-gray-500" size={20} />
+                <Search className="absolute left-3 top-3.5 text-blue-400" size={20} />
               </div>
               <button 
                 onClick={() => {
                   setPagination({...pagination, currentPage: 1});
                   fetchUserIssues();
                 }}
-                className="py-3 px-6 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors"
+                className="py-3 px-6 bg-gradient-to-r from-[#0a4b8c] to-[#0a2c54] rounded-xl text-white font-medium transition-all duration-300 hover:shadow-lg hover:shadow-[#5396e3]/30 group flex items-center justify-center gap-2 relative overflow-hidden"
               >
-                <Search size={18} /> Search
+                <span className="relative z-10">Search</span>
+                <Search size={18} className="relative z-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1a5b9c] to-[#1a3c64] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute -inset-px rounded-xl bg-gradient-to-r from-blue-500/50 to-blue-300/50 opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300"></div>
               </button>
             </div>
             
-            {/* Sort options */}
+            {/* Sort options with enhanced styling */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <div className="text-gray-500 dark:text-gray-400 flex items-center">
+              <div className="text-blue-300 flex items-center">
                 <Filter size={16} className="mr-2" /> Sort by:
               </div>
               <div className="flex flex-wrap gap-2">
@@ -209,8 +296,8 @@ export default function UserIssuesPage() {
                   }}
                   className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors ${
                     sortBy === "upvotes" && sortOrder === "desc"
-                      ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      ? "bg-blue-600/30 text-blue-200 font-medium border border-blue-600/50"
+                      : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
                   }`}
                 >
                   <ThumbsUp size={14} /> Most Upvotes
@@ -222,218 +309,255 @@ export default function UserIssuesPage() {
                   }}
                   className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors ${
                     sortBy === "createdAt" && sortOrder === "desc"
-                      ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  <span className="text-xs font-serif font-bold">New</span> Newest
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy("createdAt");
-                    setSortOrder("asc");
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors ${
-                    sortBy === "createdAt" && sortOrder === "asc"
-                      ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  <span className="text-xs font-serif font-bold">Old</span> Oldest
-                </button>
-              </div>
+                    ? "bg-blue-600/30 text-blue-200 font-medium border border-blue-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                <span className="text-xs font-serif font-bold">New</span> Newest
+              </button>
+              <button
+                onClick={() => {
+                  setSortBy("createdAt");
+                  setSortOrder("asc");
+                }}
+                className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors ${
+                  sortBy === "createdAt" && sortOrder === "asc"
+                    ? "bg-blue-600/30 text-blue-200 font-medium border border-blue-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                <span className="text-xs font-serif font-bold">Old</span> Oldest
+              </button>
             </div>
-            
-            {/* Status filter - UPDATED to match backend schema */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <div className="text-gray-500 dark:text-gray-400 flex items-center">
-                Status:
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setStatus("")}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    status === ""
-                      ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setStatus("open")}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    status === "open"
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  Open
-                </button>
-                <button
-                  onClick={() => setStatus("in-progress")}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    status === "in-progress"
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  In Progress
-                </button>
-                <button
-                  onClick={() => setStatus("resolved")}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    status === "resolved"
-                      ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  Resolved
-                </button>
-                <button
-                  onClick={() => setStatus("closed")}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    status === "closed"
-                      ? "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  Closed
-                </button>
-              </div>
+          </div>
+          
+          {/* Status filter - updated to match IssuesPage styling */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="text-blue-300 flex items-center">
+              Status:
             </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setStatus("")}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  status === ""
+                    ? "bg-blue-600/30 text-blue-200 font-medium border border-blue-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatus("open")}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  status === "open"
+                    ? "bg-blue-600/30 text-blue-200 font-medium border border-blue-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                Open
+              </button>
+              <button
+                onClick={() => setStatus("in-progress")}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  status === "in-progress"
+                    ? "bg-amber-600/30 text-amber-200 font-medium border border-amber-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                In Progress
+              </button>
+              <button
+                onClick={() => setStatus("resolved")}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  status === "resolved"
+                    ? "bg-green-600/30 text-green-200 font-medium border border-green-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                Resolved
+              </button>
+              <button
+                onClick={() => setStatus("closed")}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  status === "closed"
+                    ? "bg-gray-600/30 text-gray-300 font-medium border border-gray-600/50"
+                    : "bg-blue-900/20 text-blue-300 hover:bg-blue-800/30 border border-blue-800/30"
+                }`}
+              >
+                Closed
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+      
+      {/* Results information with updated styling */}
+      {!loading && !error && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mb-4 text-blue-300"
+        >
+          Showing {issues.length} of {pagination.totalIssues} issues
+        </motion.div>
+      )}
+    
+      {/* Error message with updated styling */}
+      {error && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-red-900/20 border border-red-700/30 rounded-xl p-6 text-center backdrop-blur-sm"
+        >
+          <div className="flex flex-col items-center">
+            <AlertCircle size={36} className="text-red-400 mb-3" />
+            <p className="text-red-300 text-lg">{error}</p>
+            <button 
+              onClick={fetchUserIssues}
+              className="mt-4 px-5 py-2 bg-red-600/80 hover:bg-red-700/80 text-white rounded-lg transition"
+            >
+              Try Again
+            </button>
           </div>
         </motion.div>
-        
-        {/* Results information */}
-        {!loading && !error && (
-          <div className="mb-4 text-gray-500 dark:text-gray-400">
-            Showing {issues.length} of {pagination.totalIssues} issues
-          </div>
-        )}
+      )}
       
-        {/* Error message */}
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 flex items-center gap-3"
-          >
-            <AlertCircle className="text-red-500 dark:text-red-400 flex-shrink-0" />
-            <p className="text-red-600 dark:text-red-400">{error}</p>
-          </motion.div>
-        )}
-        
-        {/* Issues List */}
-        {loading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        ) : issues.length > 0 ? (
-          <div className="space-y-4">
-            {issues.map((issue, index) => (
-              <motion.div
-                key={issue._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
-                <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="p-5">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{issue.title}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(issue.status)}`}>
-                          {formatStatus(issue.status)}
+      {/* Issues List with updated styling - UPDATED TO MAKE CARDS CLICKABLE */}
+      {loading ? (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : issues.length > 0 ? (
+        <div className="space-y-4">
+          {issues.map((issue, index) => (
+            <motion.div
+              key={issue._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              className="group cursor-pointer"
+              onClick={() => handleIssueClick(issue)}
+            >
+              <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/10 transition-all overflow-hidden block border border-blue-800/30 group-hover:border-blue-600/50 relative">
+                {/* Hover effect glow */}
+                <div className="absolute -inset-px rounded-xl bg-gradient-to-r from-blue-500/50 to-blue-300/50 opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300"></div>
+                
+                <div className="p-5 flex flex-col relative z-10">
+                  <div className="flex flex-wrap justify-between items-start gap-3 mb-3">
+                    <h3 className="text-xl font-semibold text-blue-100 group-hover:text-white transition duration-300">
+                      {issue.title}
+                    </h3>
+                    
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(issue.status)}`}>
+                      {formatStatus(issue.status)}
+                    </span>
+                  </div>
+                  
+                  <p className="text-blue-200/90 mb-4">
+                    {issue.description}
+                  </p>
+                  
+                  <div className="flex flex-wrap justify-between items-center mt-auto">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1 text-blue-300">
+                        <span className="font-medium">
+                          {issue.upvotes || 0} upvotes
                         </span>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-4">{issue.description}</p>
-                      
-                      <div className="flex flex-wrap justify-between items-center">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {issue.upvotes || 0} upvotes
-                            </span>
-                          </div>
-                          {issue.service && (
-                            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                              <span className="text-sm">
-                                Service: {issue.service.serviceName}
-                              </span>
-                            </div>
-                          )}
+                      {issue.service && (
+                        <div className="flex items-center gap-1 text-blue-300/70">
+                          <span className="text-sm">
+                            Service: {issue.service.serviceName}
+                          </span>
                         </div>
-                        
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(issue.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-10 text-center shadow-sm"
-          >
-            <div className="flex flex-col items-center">
-              <AlertCircle size={48} className="text-gray-400 dark:text-gray-500 mb-4" />
-              <p className="text-gray-600 dark:text-gray-300 text-lg mb-2">You haven't created any issues yet</p>
-              <p className="text-gray-500 dark:text-gray-400">Or try adjusting your search criteria</p>
-            </div>
-          </motion.div>
-        )}
-        
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex justify-center mt-8">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setPagination({...pagination, currentPage: Math.max(1, pagination.currentPage - 1)})}
-                disabled={pagination.currentPage === 1}
-                className="px-4 py-2"
-              >
-                Previous
-              </Button>
-              
-              <div className="flex items-center gap-1">
-                {[...Array(pagination.totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPagination({...pagination, currentPage: i + 1})}
-                    className={`w-8 h-8 rounded-md flex items-center justify-center ${
-                      pagination.currentPage === i + 1
-                        ? "bg-violet-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+                    
+                    <div className="text-sm text-blue-300/70">
+                      {formatDate(issue.createdAt)}
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <Button
-                variant="outline"
-                onClick={() => setPagination({...pagination, currentPage: Math.min(pagination.totalPages, pagination.currentPage + 1)})}
-                disabled={pagination.currentPage === pagination.totalPages}
-                className="px-4 py-2"
-              >
-                Next
-              </Button>
-            </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm p-10 text-center rounded-xl shadow-md border border-blue-800/30"
+        >
+          <div className="flex flex-col items-center">
+            <AlertCircle size={48} className="text-blue-400/70 mb-4" />
+            <p className="text-blue-200 text-lg mb-2">You haven't created any issues yet</p>
+            <p className="text-blue-300/70">Or try adjusting your search criteria</p>
           </div>
-        )}
-      </motion.div>
-    </div>
-  );
+        </motion.div>
+      )}
+      
+      {/* Pagination with updated styling */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setPagination({...pagination, currentPage: Math.max(1, pagination.currentPage - 1)})}
+              disabled={pagination.currentPage === 1}
+              className="px-4 py-2 bg-blue-900/50 hover:bg-blue-800/60 text-blue-100 border border-blue-700/50 rounded-lg disabled:opacity-50 disabled:hover:bg-blue-900/50"
+            >
+              Previous
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {[...Array(pagination.totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPagination({...pagination, currentPage: i + 1})}
+                  className={`w-8 h-8 rounded-md flex items-center justify-center ${
+                    pagination.currentPage === i + 1
+                      ? "bg-blue-600 text-white border border-blue-500"
+                      : "bg-blue-900/40 text-blue-200 border border-blue-800/50 hover:bg-blue-800/50"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            
+            <Button
+              onClick={() => setPagination({...pagination, currentPage: Math.min(pagination.totalPages, pagination.currentPage + 1)})}
+              disabled={pagination.currentPage === pagination.totalPages}
+              className="px-4 py-2 bg-blue-900/50 hover:bg-blue-800/60 text-blue-100 border border-blue-700/50 rounded-lg disabled:opacity-50 disabled:hover:bg-blue-900/50"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+    </motion.div>
+    
+    {/* CSS animations for particles */}
+    <style>{`
+      @keyframes float1 {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        50% { transform: translateY(-20px) translateX(10px); }
+      }
+      @keyframes float2 {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        50% { transform: translateY(20px) translateX(-15px); }
+      }
+      @keyframes float3 {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        50% { transform: translateY(-15px) translateX(-10px); }
+      }
+    `}</style>
+  </div>
+);
 }

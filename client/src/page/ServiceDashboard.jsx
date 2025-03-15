@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -17,6 +17,69 @@ import UpdateServiceModal from '@/components/UpdateServiceModal';
 
 // Define the base API URL
 const API_BASE_URL = "http://localhost:8000/api/v1/services";
+
+// Animated counter component
+const CounterCard = ({ icon: Icon, label, count, color, delay = 0 }) => {
+  const [counter, setCounter] = useState(0);
+  const cardRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(cardRef.current);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
+    if (!isInView) return;
+    
+    const timer = setTimeout(() => {
+      if (counter < count) {
+        setCounter(prev => Math.min(prev + 1, count));
+      }
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [counter, count, isInView]);
+  
+  return (
+    <div
+      ref={cardRef}
+      className={`bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm p-6 rounded-2xl border border-blue-800/30 transition-all duration-700 hover:border-blue-600/50 hover:shadow-lg hover:shadow-blue-500/10 ${
+        isInView 
+          ? "opacity-100 translate-y-0" 
+          : "opacity-0 translate-y-12"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xl font-medium text-blue-200">{label}</p>
+          <h3 className="text-4xl font-bold mt-3 text-white">{counter}</h3>
+        </div>
+        <div className="p-3 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl w-14 h-14 flex items-center justify-center shadow-lg group-hover:shadow-blue-500/20 transition-all duration-500 group-hover:scale-110">
+          <Icon className="text-blue-100 w-6 h-6" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ServiceDashboard = () => {
   // Get the service ID from URL params
@@ -209,9 +272,9 @@ const ServiceDashboard = () => {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <Loader className="h-12 w-12 text-blue-500 animate-spin mb-4" />
-        <p className="text-gray-600 dark:text-gray-300 animate-pulse">Loading dashboard...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black">
+        <Loader className="h-16 w-16 text-blue-500 animate-spin mb-4" />
+        <p className="text-blue-300 text-xl animate-pulse">Loading dashboard...</p>
       </div>
     );
   }
@@ -219,14 +282,14 @@ const ServiceDashboard = () => {
   // Show error state
   if (error || !service) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black px-4">
         <div className="max-w-md w-full text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Could not load dashboard</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{error || "Service data not available"}</p>
+          <AlertCircle className="h-20 w-20 text-red-500 mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-white mb-4">Could not load dashboard</h2>
+          <p className="text-blue-300 mb-8">{error || "Service data not available"}</p>
           <Button 
             onClick={() => window.location.reload()} 
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl text-lg font-medium"
           >
             Try Again
           </Button>
@@ -243,26 +306,44 @@ const ServiceDashboard = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-black pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
-        {/* Dashboard Header with Animation */}
-        <motion.div 
+        {/* Service Details Header (Moved from bottom to top) */}
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8"
+          className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm rounded-2xl border border-blue-800/30 p-6 mb-8"
         >
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Service Dashboard</h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your service and view analytics</p>
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center gap-4 mb-4 md:mb-0">
+              {service.logo && (
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-blue-400 flex-shrink-0">
+                  <img src={service.logo} alt={`${service.serviceName} logo`} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  {service.serviceName}
+                  <div className="h-1 w-40 bg-gradient-to-r from-blue-600 to-transparent rounded-full mt-2"></div>
+                </h1>
+                <p className="text-blue-300 mt-1">{service.email}</p>
+                <a 
+                  href={service.serviceLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 text-sm"
+                >
+                  {service.serviceLink}
+                </a>
+              </div>
             </div>
             
-            {/* New: See All Issues and Feedbacks buttons */}
-            <div className="flex space-x-4">
+            {/* Navigation buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={navigateToAllIssues}
-                className="bg-violet-600 hover:bg-violet-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+                className="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/20"
               >
                 <AlertCircle size={18} />
                 <span>See All Issues</span>
@@ -270,48 +351,42 @@ const ServiceDashboard = () => {
               
               <Button
                 onClick={navigateToAllFeedbacks}
-                className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-md transition-colors"
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/20"
               >
                 <MessageSquare size={18} />
                 <span>See All Feedbacks</span>
               </Button>
             </div>
           </div>
+          
+          <div className="mt-4">
+            <p className="text-blue-300 font-medium">Description</p>
+            <p className="text-white">{service.description}</p>
+            <p className="text-blue-400 text-sm mt-2">
+              Created on: {service.createdAt ? new Date(service.createdAt).toLocaleDateString() : "N/A"}
+            </p>
+          </div>
         </motion.div>
         
-        {/* Service Header */}
-        <div className="mb-8">
-          <Header 
-            serviceName={service.serviceName}
-            logo={service.logo}
-            email={service.email}
-            serviceLink={service.serviceLink}
-            description={service.description}
-          />
-        </div>
-        
-        {/* Stats Grid - Removed "Created On" card and updated colors */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatCard 
-            title="Upvotes" 
-            value={service.upvotes} 
-            icon={ThumbsUp} 
-            color="linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)" // Indigo gradient
-            delay={0.2}
+          <CounterCard 
+            icon={ThumbsUp}
+            label="Upvotes" 
+            count={service.upvotes} 
+            delay={0}
           />
-          <StatCard 
-            title="Issues" 
-            value={service.issues || 0} 
-            icon={Bug} 
-            color="linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)" // Purple gradient
-            delay={0.3}
+          <CounterCard 
+            icon={Bug}
+            label="Issues" 
+            count={service.issues || 0} 
+            delay={150}
           />
-          <StatCard 
-            title="Feedbacks" 
-            value={service.feedbacks || 0} 
-            icon={MessageSquare} 
-            color="linear-gradient(135deg, #2DD4BF 0%, #0D9488 100%)" // Teal gradient
-            delay={0.4}
+          <CounterCard 
+            icon={MessageSquare}
+            label="Feedbacks" 
+            count={service.feedbacks || 0} 
+            delay={300}
           />
         </div>
         
@@ -320,65 +395,81 @@ const ServiceDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8"
+          className="bg-gradient-to-br from-blue-900/30 to-blue-950/40 backdrop-blur-sm rounded-2xl border border-blue-800/30 p-6 mb-8 overflow-hidden"
         >
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Service Activity Timeline</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">
+            Service Activity Timeline
+            <div className="h-1 w-40 bg-gradient-to-r from-blue-600 to-transparent rounded-full mt-2"></div>
+          </h2>
           <div className="h-80">
             <IssuesLineChart data={chartData} />
           </div>
         </motion.div>
         
         {/* Action Buttons */}
-        <motion.div 
-          className="flex flex-col sm:flex-row gap-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Button 
-            onClick={() => setShowUpdateModal(true)} 
-            className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium shadow-sm transition-colors"
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Edit className="h-5 w-5" />
-            Update Service
-          </Button>
+            <Button 
+              onClick={() => setShowUpdateModal(true)} 
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl text-lg font-medium shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 flex items-center justify-center gap-2"
+            >
+              <Edit className="h-5 w-5" />
+              Update Service
+            </Button>
+          </motion.div>
           
-          <Button 
-            onClick={handleDeleteService}
-            disabled={isDeleting}
-            className="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-xl font-medium shadow-sm transition-colors"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
           >
-            {isDeleting ? (
-              <>
-                <Loader className="h-5 w-5 animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <Trash2 className="h-5 w-5" />
-                Delete Service
-              </>
-            )}
-          </Button>
+            <Button 
+              onClick={handleDeleteService}
+              disabled={isDeleting}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl text-lg font-medium shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader className="h-5 w-5 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-5 w-5" />
+                  Delete Service
+                </>
+              )}
+            </Button>
+          </motion.div>
           
-          <Button 
-            onClick={handleUpvoteService}
-            disabled={isUpvoting}
-            className="flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 text-white px-6 py-3 rounded-xl font-medium shadow-sm transition-colors"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
           >
-            {isUpvoting ? (
-              <>
-                <Loader className="h-5 w-5 animate-spin" />
-                Upvoting...
-              </>
-            ) : (
-              <>
-                <ThumbsUp className="h-5 w-5" />
-                Upvote Service
-              </>
-            )}
-          </Button>
-        </motion.div>
+            <Button 
+              onClick={handleUpvoteService}
+              disabled={isUpvoting}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl text-lg font-medium shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 flex items-center justify-center gap-2"
+            >
+              {isUpvoting ? (
+                <>
+                  <Loader className="h-5 w-5 animate-spin" />
+                  Upvoting...
+                </>
+              ) : (
+                <>
+                  <ThumbsUp className="h-5 w-5" />
+                  Upvote Service
+                </>
+              )}
+            </Button>
+          </motion.div>
+        </div>
       </div>
       
       {/* Update Modal */}
@@ -394,6 +485,22 @@ const ServiceDashboard = () => {
           logo: service.logo,
         }}
       />
+      
+      {/* Add global animation keyframes */}
+      <style jsx global>{`
+        @keyframes float1 {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(-20px) translateX(10px); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(20px) translateX(-10px); }
+        }
+        @keyframes float3 {
+          0%, 100% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(-15px) translateX(-15px); }
+        }
+      `}</style>
     </div>
   );
 };
