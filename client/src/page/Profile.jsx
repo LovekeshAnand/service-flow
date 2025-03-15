@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useAlert } from '../components/AlertProvider';
 import { Lock } from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1/users";
 
 // Animated counter component
 const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
