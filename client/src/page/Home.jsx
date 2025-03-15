@@ -221,8 +221,8 @@ const Home = () => {
         <div className="absolute w-[600px] h-[600px] rounded-full bg-[#2a6baf]/10 blur-[100px] bottom-[20%] -right-[300px] animate-pulse" style={{ animationDuration: '8s' }}></div>
         <div className="absolute w-[400px] h-[400px] rounded-full bg-[#5396e3]/5 blur-[80px] top-[60%] left-[30%] animate-pulse" style={{ animationDuration: '12s' }}></div>
         
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+        {/* /* Grid pattern overlay
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div> */ }
         
         {/* Animated lines */}
         <div className="absolute inset-0 overflow-hidden">
