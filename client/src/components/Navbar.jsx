@@ -21,7 +21,7 @@ const Navbar = () => {
       if (storedProfile && storedProfile !== "undefined" && storedProfile !== "null") {
         try {
           const parsedProfile = JSON.parse(storedProfile);
-          console.log("Profile loaded from localStorage:", parsedProfile);
+          console.log("Profile loaded from localStorage.");
           setProfile(parsedProfile);
         } catch (error) {
           console.error("⚠️ Error parsing profile:", error);
@@ -55,10 +55,10 @@ const Navbar = () => {
   }, []);
 
   const handleAuthSuccess = (userData) => {
-    console.log("Authentication successful, updating profile with:", userData);
+    console.log("Authentication successful, updating profile with User data.");
     
     if (userData) {
-      console.log("Setting profile with userData:", userData);
+      console.log("Setting profile with userData.");
       setProfile(userData);
       showAlert("Success", "Authentication successful", "success");
     } else {
@@ -66,7 +66,7 @@ const Navbar = () => {
         const storedProfile = localStorage.getItem("profile");
         if (storedProfile && storedProfile !== "undefined" && storedProfile !== "null") {
           const parsedProfile = JSON.parse(storedProfile);
-          console.log("Fallback: Setting profile from localStorage:", parsedProfile);
+          console.log("Fallback: Setting profile from localStorage");
           setProfile(parsedProfile);
         }
       } catch (error) {
@@ -79,7 +79,7 @@ const Navbar = () => {
   const isServiceProvider = () => {
     if (!profile) return false;
     
-    console.log("Checking if service provider, profile:", profile);
+    console.log("Checking if service provider, profile");
     
     return Boolean(
       profile.serviceName || 

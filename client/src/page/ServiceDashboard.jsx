@@ -115,9 +115,6 @@ const ServiceDashboard = () => {
           })
         ]);
         
-        // Log responses in development
-        console.log("Service Response:", serviceResponse.data);
-        console.log("Activity Response:", activityResponse.data);
         
         if (serviceResponse.data && serviceResponse.data.data) {
           setService(serviceResponse.data.data);

@@ -73,7 +73,6 @@ export default function UserFeedbacksPage() {
         }
       );
       
-      console.log("User feedbacks response:", response.data);
       setFeedbacks(response.data.data.feedbacks || []);
       setPagination(response.data.data.pagination || {
         currentPage: 1,

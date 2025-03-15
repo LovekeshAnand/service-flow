@@ -144,8 +144,8 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
         // Store in localStorage
         localStorage.setItem("profile", JSON.stringify(userData));
         
-        console.log("Successfully logged in as:", loginType);
-        console.log("User data:", userData);
+        console.log("Successfully logged in!");
+        console.log("User data");
   
         // Call both callbacks with the user data
         if (setUser) {

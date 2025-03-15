@@ -49,7 +49,6 @@ export default function FeedbacksPage() {
     try {
       const token = localStorage.getItem('token');
       
-      console.log("Fetching feedbacks for service:", serviceId);
       
       const response = await fetch(
         `${API_BASE_URL}/feedbacks/service/${serviceId}/feedbacks?search=${debouncedSearch}&sortBy=${sortBy}`,
@@ -66,10 +65,8 @@ export default function FeedbacksPage() {
       }
       
       const data = await response.json();
-      console.log("Feedbacks response:", data);
       setFeedbacks(data.data.feedbacks || []);
     } catch (error) {
-      console.error("Error fetching feedbacks:", error);
       setError(error.message || "Failed to fetch feedbacks");
     } finally {
       setLoading(false);
@@ -84,7 +81,6 @@ export default function FeedbacksPage() {
         return;
       }
       
-      console.log(`${voteType === 'upvote' ? 'Upvoting' : 'Downvoting'} feedback: ${feedbackId}`);
       
       const response = await fetch(
         `${API_BASE_URL}/feedbacks/service/${serviceId}/feedbacks/${feedbackId}/${voteType}`,
@@ -105,7 +101,6 @@ export default function FeedbacksPage() {
       // Refetch feedbacks after successful vote
       fetchFeedbacks();
     } catch (error) {
-      console.error(`Error ${voteType}ing feedback:`, error);
       setError(error.message || `Failed to ${voteType} feedback`);
     }
   }

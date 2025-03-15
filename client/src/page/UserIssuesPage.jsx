@@ -30,7 +30,6 @@ export default function UserIssuesPage() {
   const scrollY = useRef(0);
 
   useEffect(() => {
-    console.log("Component mounted with userId:", userId);
     if (userId) {
       fetchUserIssues();
     } else {
@@ -64,7 +63,7 @@ export default function UserIssuesPage() {
       if (!token) {
         console.warn("No authentication token found in localStorage");
       } else {
-        console.log("Token found (first 10 chars):", token.substring(0, 10) + "...");
+        console.log("found")
       }
       
       // Build API URL with proper status format
@@ -74,13 +73,6 @@ export default function UserIssuesPage() {
         statusParam = "in-progress";
       }
       
-      console.log("Fetching issues with params:", {
-        search: debouncedSearch,
-        sortBy,
-        sortOrder,
-        status: statusParam,
-        page: pagination.currentPage
-      });
       
       const response = await axios.get(
         `${API_BASE_URL}/users/${userId}/issues`, 
@@ -100,10 +92,8 @@ export default function UserIssuesPage() {
         }
       );
       
-      console.log("Full response:", response);
       
       if (response.data.data && response.data.data.issues) {
-        console.log("Issues found:", response.data.data.issues.length);
         setIssues(response.data.data.issues);
         setPagination(response.data.data.pagination || {
           currentPage: 1,
@@ -111,13 +101,10 @@ export default function UserIssuesPage() {
           totalIssues: 0
         });
       } else {
-        console.error("Unexpected response structure:", response.data);
+        console.error("Unexpected response structure.");
         setError("Received unexpected data structure from server");
       }
     } catch (error) {
-      console.error("Error fetching issues:", error);
-      console.error("Response data:", error.response?.data);
-      console.error("Status:", error.response?.status);
       setError(error.response?.data?.message || error.message || "Failed to fetch issues");
     } finally {
       setLoading(false);

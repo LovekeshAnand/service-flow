@@ -51,7 +51,6 @@ export default function IssuesPage() {
     try {
       const token = localStorage.getItem('token');
       
-      console.log("Fetching issues for service:", serviceId);
       
       // Use the absolute URL with the correct API base URL
       const response = await axios.get(
@@ -68,7 +67,6 @@ export default function IssuesPage() {
         }
       );
       
-      console.log("Issues response:", response.data);
       setIssues(response.data.data.issues || []);
     } catch (error) {
       console.error("Error fetching issues:", error);

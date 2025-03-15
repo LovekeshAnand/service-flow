@@ -126,7 +126,6 @@ const IssueCommentPage = () => {
       return true;
     } catch (err) {
       // Only log the error, don't display to user
-      console.error(`API endpoint ${endpoint} check failed:`, err);
       return false;
     }
   };
@@ -158,7 +157,6 @@ const IssueCommentPage = () => {
         setUserVote(issueData.userVote);
       }
     } catch (err) {
-      console.error("Error fetching issue:", err);
       setError(err.response?.data?.message || err.message || "Failed to fetch issue details");
     } finally {
       setLoading(false);
@@ -230,7 +228,6 @@ const IssueCommentPage = () => {
           }
         );
       } catch (voteErr) {
-        console.error(`Primary vote endpoint failed:`, voteErr);
         
         // Try alternative endpoint if primary fails
         if (voteErr.response?.status === 500) {
@@ -246,9 +243,8 @@ const IssueCommentPage = () => {
                 withCredentials: true
               }
             );
-            console.log("Alternative vote endpoint succeeded");
+
           } catch (altErr) {
-            console.error("Alternative vote endpoint also failed:", altErr);
             throw altErr; // Re-throw to trigger error handling below
           }
         } else {
@@ -257,7 +253,6 @@ const IssueCommentPage = () => {
       }
       
     } catch (err) {
-      console.error(`Failed to ${voteType} issue:`, err);
       setError(`Failed to ${voteType} issue. Please try again later.`);
       
       // Revert to original state by refreshing data
@@ -294,7 +289,6 @@ const IssueCommentPage = () => {
       setComments([...comments, response.data.data]);
       setNewComment("");
     } catch (err) {
-      console.error("Failed to add comment:", err);
       setError(err.response?.data?.message || err.message || "Failed to add comment");
       
       // Clear error after 3 seconds
@@ -345,7 +339,6 @@ const IssueCommentPage = () => {
         )
       );
     } catch (err) {
-      console.error("Failed to toggle like:", err);
       setError("Failed to toggle like. Please try again later.");
       
       // Revert by refreshing comments
@@ -413,7 +406,6 @@ const IssueCommentPage = () => {
         })
       );
     } catch (err) {
-      console.error("Failed to toggle reply like:", err);
       setError("Failed to toggle reply like. Please try again later.");
       
       // Revert by refreshing comments
@@ -459,7 +451,6 @@ const IssueCommentPage = () => {
       setNewReply("");
       setSelectedReply(null);
     } catch (err) {
-      console.error("Failed to add reply:", err);
       setError(err.response?.data?.message || err.message || "Failed to add reply");
       
       // Clear error after 3 seconds
@@ -495,7 +486,6 @@ const IssueCommentPage = () => {
         }
       );
     } catch (err) {
-      console.error("Failed to update status:", err);
       setError(err.response?.data?.message || err.message || "Failed to update status");
       
       // Revert to original status

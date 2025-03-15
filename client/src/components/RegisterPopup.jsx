@@ -172,7 +172,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
         
         // Verify we have user data before proceeding
         if (!userData) {
-          console.error("No user/service data in response:", responseData);
+          console.error("No user/service data in response.");
           setErrorMessage("Registration successful but user data is missing.");
           return;
         }
@@ -184,8 +184,6 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
         // Store in localStorage
         localStorage.setItem("profile", JSON.stringify(userData));
         
-        console.log("Successfully registered as:", registerType);
-        console.log("User data:", userData);
   
         // Call both callbacks with the user data
         if (setUser) {
