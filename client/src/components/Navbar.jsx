@@ -99,7 +99,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     if (!profile) return;
 
-    const API_BASE = "http://localhost:8000/api/v1";
+    const API_BASE = import.meta.env.VITE_API_URL + "/api/v1";
     const logoutUrl = isServiceProvider()
       ? `${API_BASE}/services/logout`
       : `${API_BASE}/users/logout`;

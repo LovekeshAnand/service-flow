@@ -17,7 +17,7 @@ import StatCard from "@/components/StatCard";
 import IssuesLineChart from "@/components/LineChart";
 
 // Updated base URL to match your backend structure
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 // Animated counter component from ServiceDashboard
 const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {

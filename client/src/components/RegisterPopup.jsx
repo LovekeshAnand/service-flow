@@ -112,7 +112,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
     e.preventDefault();
     setErrorMessage("");
   
-    const API_BASE = "http://localhost:8000/api/v1";
+    const API_BASE = import.meta.env.VITE_API_URL + "/api/v1";
     const registerUrl =
       registerType === "user"
         ? `${API_BASE}/users/register`

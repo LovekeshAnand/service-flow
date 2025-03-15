@@ -6,7 +6,7 @@ import { Search, ThumbsUp, ThumbsDown, Filter, AlertCircle, MessageSquare } from
 import { motion } from "framer-motion";
 
 // Use the same API base URL as in your other components
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 export default function FeedbacksPage() {
   const { serviceId } = useParams();

@@ -5,7 +5,7 @@ import { Search, ChevronLeft, ChevronRight, Filter, Star, Clock, Zap } from "luc
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
-const API_URL = "http://localhost:8000/api/v1/services/all-services";
+const API_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 export default function ServicesPage() {
   const { showAlert } = useAlert();

@@ -16,7 +16,7 @@ import IssuesLineChart from '@/components/LineChart';
 import UpdateServiceModal from '@/components/UpdateServiceModal';
 
 // Define the base API URL
-const API_BASE_URL = "http://localhost:8000/api/v1/services";
+const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 // Animated counter component
 const CounterCard = ({ icon: Icon, label, count, color, delay = 0 }) => {

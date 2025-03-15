@@ -9,7 +9,7 @@ import { ArrowLeft, Send, Clock, User, MessageCircle, AlertCircle, ThumbsUp, Thu
 import { motion } from "framer-motion";
 
 // API base URL
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 const IssueCommentPage = () => {
   const { serviceId, issueId } = useParams();
