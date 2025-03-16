@@ -94,6 +94,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
       const file = e.target.files[0];
+      setLogoPreview(null); // Clear previous preview
       setFormData((prev) => ({ ...prev, logo: file }));
       setLogoPreview(URL.createObjectURL(file));
     }
@@ -119,7 +120,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
             : `${API_BASE}/services/register`;
 
     const formDataToSend = new FormData();
-    const token = localStorage.getItem("accessToken"); // ✅ Retrieve token from localStorage
+    const token = localStorage.getItem("accessToken");
 
     if (registerType === "user") {
         if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
