@@ -61,6 +61,8 @@ const Home = () => {
   const toggleMute = () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(isMuted);
+    } else {
       setIsMuted(!isMuted);
     }
   };
@@ -314,13 +316,13 @@ const Home = () => {
             <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={toggleMute} 
+                  onClick={togglePlay} 
                   className="w-14 h-14 rounded-full bg-blue-600/90 backdrop-blur-sm flex items-center justify-center text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50 border border-blue-400/30"
                 >
                   {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
                 </button>
                 <button 
-                  onClick={togglePlay} 
+                  onClick={toggleMute} 
                   className="w-14 h-14 rounded-full bg-blue-600/90 backdrop-blur-sm flex items-center justify-center text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50 border border-blue-400/30"
                 >
                   {isMuted ? <VolumeX size={28} /> : <Volume2 size={28} />}
