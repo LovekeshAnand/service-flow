@@ -137,9 +137,13 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
 
             // ✅ Store token properly
             if (accessToken) {
-                localStorage.setItem("accessToken", accessToken);
-                document.cookie = `accessToken=${accessToken}; path=/; Secure; SameSite=Strict`; // ✅ Save token as a cookie
-            }
+              localStorage.setItem("accessToken", accessToken);  // ✅ Store with correct key
+          
+              document.cookie = `accessToken=${accessToken}; path=/; Secure; SameSite=Strict`; // ✅ Store in cookies (optional)
+              
+              console.log("✅ Token stored in localStorage:", localStorage.getItem("accessToken")); // Debugging
+          }
+          
 
             localStorage.setItem("profile", JSON.stringify(userData));
 
