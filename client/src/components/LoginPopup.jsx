@@ -106,6 +106,7 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // ✅ Ensures cookies are stored
         body: JSON.stringify({
           email: formData.email.trim(),
           password: formData.password,
@@ -115,64 +116,54 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
       const responseData = await response.json();
   
       if (response.ok && responseData.data) {
-        // Handle different response structures for user and service login
         let userData;
         const accessToken = responseData.data.accessToken;
-        
+  
         if (loginType === "user") {
           userData = responseData.data.user;
         } else {
           userData = responseData.data.service;
-          // For services, add isService flag if it doesn't exist
           if (userData) {
             userData.isService = true;
           }
         }
-        
-        // Verify we have user data before proceeding
+  
         if (!userData) {
-          console.error("No user/service data in response:", responseData);
           setErrorMessage("Login successful but user data is missing.");
           showAlert("Error", "Login successful but user data is missing.", "error");
           return;
         }
   
+        // ✅ Store access token in localStorage (Fallback)
         if (accessToken) {
-          localStorage.setItem("token", accessToken);
+          localStorage.setItem("accessToken", accessToken);
         }
-        
-        // Store in localStorage
-        localStorage.setItem("profile", JSON.stringify(userData));
-        
-        console.log("Successfully logged in!");
-        console.log("User data");
   
-        // Call both callbacks with the user data
+        // ✅ Store user profile in localStorage
+        localStorage.setItem("profile", JSON.stringify(userData));
+  
         if (setUser) {
-          setUser(userData); // Update state immediately in Navbar
+          setUser(userData);
         }
-        
+  
         if (onLoginSuccess) {
-          onLoginSuccess(userData); // Pass the user data to the callback
+          onLoginSuccess(userData);
         }
-        
-        // Replace alert with custom alert
+  
         showAlert("Login Successful", "🎉 You have successfully logged in!", "success");
-        
         resetForm();
         handleClose();
       } else {
-        // Show error in custom alert instead of in the form
-        showAlert("Login Failed", responseData.message || "❌ Login failed. Check your credentials and try again.", "error");
-        setErrorMessage(responseData.message || "❌ Login failed. Check your credentials and try again.");
+        showAlert("Login Failed", responseData.message || "❌ Login failed.", "error");
+        setErrorMessage(responseData.message || "❌ Login failed.");
       }
     } catch (error) {
       console.error("❌ Error:", error);
-      // Show network error in custom alert
       showAlert("Login Error", "Something went wrong. Please try again.", "error");
       setErrorMessage("Something went wrong. Please try again.");
     }
   };
+  
 
   if (!isOpen) return null;
 

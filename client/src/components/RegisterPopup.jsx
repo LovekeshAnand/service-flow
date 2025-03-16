@@ -111,99 +111,102 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
-  
+
     const API_BASE = import.meta.env.VITE_API_URL + "/api/v1";
     const registerUrl =
-      registerType === "user"
-        ? `${API_BASE}/users/register`
-        : `${API_BASE}/services/register`;
-  
+        registerType === "user"
+            ? `${API_BASE}/users/register`
+            : `${API_BASE}/services/register`;
+
     const formDataToSend = new FormData();
-    const token = localStorage.getItem("token"); // Retrieve token from localStorage
-  
+    const token = localStorage.getItem("accessToken"); // ✅ Retrieve token from localStorage
+
     if (registerType === "user") {
-      if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
-        setErrorMessage("⚠️ All fields are required.");
-        return;
-      }
-      formDataToSend.append("username", formData.username.trim());
-      formDataToSend.append("fullname", formData.fullname.trim());
-      formDataToSend.append("email", formData.email.trim());
-      formDataToSend.append("password", formData.password);
+        if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
+            setErrorMessage("⚠️ All fields are required.");
+            return;
+        }
+        formDataToSend.append("username", formData.username.trim());
+        formDataToSend.append("fullname", formData.fullname.trim());
+        formDataToSend.append("email", formData.email.trim());
+        formDataToSend.append("password", formData.password);
     } else {
-      if (!formData.serviceName.trim() || !formData.email.trim() || !formData.password || !formData.description.trim() || !formData.serviceLink.trim()) {
-        setErrorMessage("⚠️ All fields are required.");
-        return;
-      }
-      formDataToSend.append("serviceName", formData.serviceName.trim());
-      formDataToSend.append("email", formData.email.trim());
-      formDataToSend.append("password", formData.password);
-      formDataToSend.append("description", formData.description.trim());
-      formDataToSend.append("serviceLink", formData.serviceLink.trim());
-  
-      if (!formData.logo) {
-        setErrorMessage("⚠️ Please upload a logo.");
-        return;
-      }
-      formDataToSend.append("logo", formData.logo);
+        if (!formData.serviceName.trim() || !formData.email.trim() || !formData.password || !formData.description.trim() || !formData.serviceLink.trim()) {
+            setErrorMessage("⚠️ All fields are required.");
+            return;
+        }
+        formDataToSend.append("serviceName", formData.serviceName.trim());
+        formDataToSend.append("email", formData.email.trim());
+        formDataToSend.append("password", formData.password);
+        formDataToSend.append("description", formData.description.trim());
+        formDataToSend.append("serviceLink", formData.serviceLink.trim());
+
+        if (!formData.logo) {
+            setErrorMessage("⚠️ Please upload a logo.");
+            return;
+        }
+        formDataToSend.append("logo", formData.logo);
     }
-  
+
     try {
-      const response = await fetch(registerUrl, {
-        method: "POST",
-        body: formDataToSend,
-        headers: token ? { Authorization: `Bearer ${token}` } : {}, // Add token if available
-      });
-  
-      const responseData = await response.json();
-  
-      if (response.ok && responseData.data) {
-        let userData;
-        const accessToken = responseData.data.accessToken;
-  
-        if (registerType === "user") {
-          userData = responseData.data.user;
+        const response = await fetch(registerUrl, {
+            method: "POST",
+            body: formDataToSend,
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}), // ✅ Add Authorization header if token exists
+            },
+        });
+
+        const responseData = await response.json();
+
+        if (response.ok && responseData.data) {
+            let userData;
+            const accessToken = responseData.data.accessToken;
+
+            if (registerType === "user") {
+                userData = responseData.data.user;
+            } else {
+                userData = responseData.data.service;
+                if (userData) {
+                    userData.isService = true;
+                }
+            }
+
+            if (!userData) {
+                console.error("No user/service data in response.");
+                setErrorMessage("Registration successful but user data is missing.");
+                return;
+            }
+
+            if (accessToken) {
+                localStorage.setItem("accessToken", accessToken); // ✅ Store token in localStorage
+            }
+
+            localStorage.setItem("profile", JSON.stringify(userData));
+
+            if (setUser) {
+                setUser(userData);
+            }
+
+            if (onRegisterSuccess) {
+                onRegisterSuccess(userData);
+            }
+
+            showAlert("Registration Successful", "🎉 Your account has been created successfully!", "success");
+
+            resetForm();
+            handleClose();
         } else {
-          userData = responseData.data.service;
-          if (userData) {
-            userData.isService = true;
-          }
+            showAlert("Registration Failed", responseData.message || "❌ Registration failed. Try again.", "error");
+            setErrorMessage(responseData.message || "❌ Registration failed. Try again.");
         }
-  
-        if (!userData) {
-          console.error("No user/service data in response.");
-          setErrorMessage("Registration successful but user data is missing.");
-          return;
-        }
-  
-        if (accessToken) {
-          localStorage.setItem("token", accessToken);
-        }
-  
-        localStorage.setItem("profile", JSON.stringify(userData));
-  
-        if (setUser) {
-          setUser(userData);
-        }
-  
-        if (onRegisterSuccess) {
-          onRegisterSuccess(userData);
-        }
-  
-        showAlert("Registration Successful", "🎉 Your account has been created successfully!", "success");
-  
-        resetForm();
-        handleClose();
-      } else {
-        showAlert("Registration Failed", responseData.message || "❌ Registration failed. Try again.", "error");
-        setErrorMessage(responseData.message || "❌ Registration failed. Try again.");
-      }
     } catch (error) {
-      console.error("❌ Error:", error);
-      showAlert("Registration Error", "Something went wrong. Please try again.", "error");
-      setErrorMessage("Something went wrong. Please try again.");
+        console.error("❌ Error:", error);
+        showAlert("Registration Error", "Something went wrong. Please try again.", "error");
+        setErrorMessage("Something went wrong. Please try again.");
     }
-  };
+};
+
   
 
   if (!isOpen) return null;
