@@ -61,7 +61,7 @@ const Home = () => {
   const toggleMute = () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(!isMuted);
+      setIsMuted(isMuted);
     }
   };
 
