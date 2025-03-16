@@ -60,13 +60,13 @@ const Home = () => {
 
   const toggleMute = () => {
     if (videoRef.current) {
-      videoRef.current.muted  
-      
-    } else {
-      !videoRef.current.muted;
+      setIsMuted((prevMuted) => {
+        videoRef.current.muted = !prevMuted; // Ensure the video element's muted property is updated correctly
+        return !prevMuted; // Update state accordingly
+      });
     }
-    setIsMuted(!isMuted);
   };
+  
 
   // Modern animated feature card component
   const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => {
