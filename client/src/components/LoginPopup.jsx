@@ -88,82 +88,84 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
-  
+
     const API_BASE = import.meta.env.VITE_API_URL + "/api/v1";
     const loginUrl =
-      loginType === "user"
-        ? `${API_BASE}/users/login`
-        : `${API_BASE}/services/login`;
-  
+        loginType === "user"
+            ? `${API_BASE}/users/login`
+            : `${API_BASE}/services/login`;
+
     if (!formData.email.trim() || !formData.password) {
-      setErrorMessage("⚠️ Email and password are required.");
-      return;
+        setErrorMessage("⚠️ Email and password are required.");
+        return;
     }
-  
+
     try {
-      const response = await fetch(loginUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // ✅ Ensures cookies are stored
-        body: JSON.stringify({
-          email: formData.email.trim(),
-          password: formData.password,
-        }),
-      });
-  
-      const responseData = await response.json();
-  
-      if (response.ok && responseData.data) {
-        let userData;
-        const accessToken = responseData.data.accessToken;
-  
-        if (loginType === "user") {
-          userData = responseData.data.user;
+        const response = await fetch(loginUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            credentials: "include",  // ✅ Ensure cookies are sent with request
+            body: JSON.stringify({
+                email: formData.email.trim(),
+                password: formData.password,
+            }),
+        });
+
+        const responseData = await response.json();
+
+        if (response.ok && responseData.data) {
+            let userData;
+            const accessToken = responseData.data.accessToken;
+
+            if (loginType === "user") {
+                userData = responseData.data.user;
+            } else {
+                userData = responseData.data.service;
+                if (userData) {
+                    userData.isService = true;
+                }
+            }
+
+            if (!userData) {
+                console.error("No user/service data in response:", responseData);
+                setErrorMessage("Login successful but user data is missing.");
+                showAlert("Error", "Login successful but user data is missing.", "error");
+                return;
+            }
+
+            // ✅ Store token properly
+            if (accessToken) {
+                localStorage.setItem("accessToken", accessToken);
+                document.cookie = `accessToken=${accessToken}; path=/; Secure; SameSite=Strict`; // ✅ Save token as a cookie
+            }
+
+            localStorage.setItem("profile", JSON.stringify(userData));
+
+            if (setUser) {
+                setUser(userData);
+            }
+
+            if (onLoginSuccess) {
+                onLoginSuccess(userData);
+            }
+
+            showAlert("Login Successful", "🎉 You have successfully logged in!", "success");
+
+            resetForm();
+            handleClose();
         } else {
-          userData = responseData.data.service;
-          if (userData) {
-            userData.isService = true;
-          }
+            showAlert("Login Failed", responseData.message || "❌ Login failed. Check your credentials and try again.", "error");
+            setErrorMessage(responseData.message || "❌ Login failed. Check your credentials and try again.");
         }
-  
-        if (!userData) {
-          setErrorMessage("Login successful but user data is missing.");
-          showAlert("Error", "Login successful but user data is missing.", "error");
-          return;
-        }
-  
-        // ✅ Store access token in localStorage (Fallback)
-        if (accessToken) {
-          localStorage.setItem("accessToken", accessToken);
-        }
-  
-        // ✅ Store user profile in localStorage
-        localStorage.setItem("profile", JSON.stringify(userData));
-  
-        if (setUser) {
-          setUser(userData);
-        }
-  
-        if (onLoginSuccess) {
-          onLoginSuccess(userData);
-        }
-  
-        showAlert("Login Successful", "🎉 You have successfully logged in!", "success");
-        resetForm();
-        handleClose();
-      } else {
-        showAlert("Login Failed", responseData.message || "❌ Login failed.", "error");
-        setErrorMessage(responseData.message || "❌ Login failed.");
-      }
     } catch (error) {
-      console.error("❌ Error:", error);
-      showAlert("Login Error", "Something went wrong. Please try again.", "error");
-      setErrorMessage("Something went wrong. Please try again.");
+        console.error("❌ Error:", error);
+        showAlert("Login Error", "Something went wrong. Please try again.", "error");
+        setErrorMessage("Something went wrong. Please try again.");
     }
-  };
-  
+};
+
 
   if (!isOpen) return null;
 

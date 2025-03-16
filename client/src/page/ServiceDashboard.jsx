@@ -182,28 +182,28 @@ const ServiceDashboard = () => {
   // Handle service update
   const handleUpdate = async (formData) => {
     try {
-      toast.info("Updating service details...");
-      
-      const token = localStorage.getItem("token");
-      await axios.patch(`${API_BASE_URL}/${serviceId}`, formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data"
-        },
-        withCredentials: true,
-      });
-      
-      setShowUpdateModal(false);
-      toast.success("Service updated successfully");
-      
-      // Reload page to show updated data
-      window.location.reload();
+        toast.info("Updating service details...");
+
+        const token = localStorage.getItem("accessToken"); // ✅ Get token from localStorage
+        console.log("🔑 Sending accessToken:", token); // ✅ Debugging
+
+        const response = await axios.patch(`${API_BASE_URL}/${serviceId}`, formData, {
+            headers: { 
+                Authorization: `Bearer ${token}`, // ✅ Ensure token is sent
+                "Content-Type": "multipart/form-data"
+            },
+            withCredentials: true,  // ✅ Ensure credentials are included
+        });
+
+        console.log("✅ Update response:", response.data);
+        toast.success("Service updated successfully");
+        window.location.reload();
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Update failed";
-      toast.error(errorMessage);
-      console.error("Service update error:", err.response?.data || err.message);
+        console.error("❌ Update error:", err.response?.data || err.message);
+        toast.error(err.response?.data?.message || "Update failed");
     }
-  };
+};
+
   
   // Handle service deletion
   const handleDeleteService = async () => {
