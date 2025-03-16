@@ -73,6 +73,7 @@ const registerUser = asyncHandler(async (req, res) => {
   return res.status(201).json(
     new ApiResponse(201, { 
       user: createdUser, 
+      token: accessToken
     }, "User registered successfully!")
   );
 });
@@ -124,6 +125,7 @@ const loginUser = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, { 
       user: loggedInUser, 
+      token: accessToken
     }, "User logged in successfully!")
   );
 });
