@@ -1,5 +1,6 @@
 import express from "express";
 import { verifyJWT } from "../middleware/auth.middleware.js";
+import { registerLimiter } from "../../middleware/rateLimiter.js";
 import {
     registerUser,
     loginUser,
@@ -16,10 +17,10 @@ import { upload } from "../middleware/multer.middleware.js";
 const router = express.Router();
 
 // ✅ Register a new user (Public)
-router.post("/register", upload.none(), registerUser);
+router.post("/register", upload.none(), registerLimiter, registerUser);
 
 // ✅ Login user (Public)
-router.post("/login", upload.none(), loginUser);
+router.post("/login", upload.none(), registerLimiter, loginUser);
 
 // ✅ Logout user (Protected)
 router.post("/logout", verifyJWT, logoutUser);

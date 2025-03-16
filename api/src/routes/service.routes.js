@@ -1,6 +1,7 @@
 import { upload } from "../middleware/multer.middleware.js";
 import { Router } from "express";
 import { verifyJWT } from "../middleware/auth.middleware.js";
+import { registerLimiter } from "../../middleware/rateLimiter.js";
 import {
     registerService,
     loginService,
@@ -22,9 +23,9 @@ const router = Router();
  * Authentication Routes
  * Handles service registration, login, logout and token refresh
  */
-router.post("/register", upload.single("logo"), registerService);
-router.post("/login", upload.none(), loginService);
-router.post("/logout", verifyJWT, logoutService);
+router.post("/register", upload.single("logo"), registerLimiter, registerService);
+router.post("/login", upload.none(), registerLimiter, loginService);
+router.post("/logout", registerLimiter, verifyJWT, logoutService);
 router.post("/refresh-token", refreshServiceAccessToken);
 
 /**
