@@ -1,7 +1,7 @@
 import { upload } from "../middleware/multer.middleware.js";
 import { Router } from "express";
 import { verifyJWT } from "../middleware/auth.middleware.js";
-import { registerLimiter } from "../../middleware/rateLimiter.js";
+import { registerLimiter } from "../middleware/rateLimiter.js";
 import {
     registerService,
     loginService,
