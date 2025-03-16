@@ -47,7 +47,7 @@ router.patch(
     updateService
 );
 router.delete("/:serviceId", verifyJWT, deleteService);
-router.get("/:serviceId/activity", verifyJWT, getServiceActivity);
+router.get("/:serviceId/activity", getServiceActivity);
 
 /**
  * Interaction Routes
