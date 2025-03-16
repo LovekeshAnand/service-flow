@@ -69,7 +69,7 @@ const IssueCommentPage = () => {
         const response = await axios.get(
           `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/vote`,
           { 
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             withCredentials: true
           }
         );
@@ -114,7 +114,7 @@ const IssueCommentPage = () => {
   // Helper function to check if an API endpoint is working
   const checkApiEndpoint = async (endpoint) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       // Use HEAD request to check endpoint without fetching data
       await axios.head(
         `${API_BASE_URL}${endpoint}`,
@@ -139,7 +139,7 @@ const IssueCommentPage = () => {
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}`, 
         {
           headers: {
-            Authorization: localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ""
+            Authorization: localStorage.getItem("accessToken") ? `Bearer ${localStorage.getItem("accessToken")}` : ""
           },
           withCredentials: true
         }
@@ -222,7 +222,7 @@ const IssueCommentPage = () => {
           {},
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`
+              Authorization: `Bearer ${localStorage.getItem("accessToken")}`
             },
             withCredentials: true
           }
@@ -238,7 +238,7 @@ const IssueCommentPage = () => {
               {},
               {
                 headers: {
-                  Authorization: `Bearer ${localStorage.getItem('token')}`
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`
                 },
                 withCredentials: true
               }
@@ -270,7 +270,7 @@ const IssueCommentPage = () => {
     
     setCommentLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       // Updated endpoint structure
       const response = await axios.post(
@@ -300,7 +300,7 @@ const IssueCommentPage = () => {
 
   const handleLikeComment = async (commentId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       // Optimistically update UI first
       setComments(prevComments => 
@@ -351,7 +351,7 @@ const IssueCommentPage = () => {
 
   const handleLikeReply = async (commentId, replyId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       // Optimistically update UI first
       setComments(prevComments => 
@@ -421,7 +421,7 @@ const IssueCommentPage = () => {
     
     setReplyLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       // API call to add a reply to a comment
       const response = await axios.post(
@@ -469,7 +469,7 @@ const IssueCommentPage = () => {
         return;
       }
       
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       // Optimistically update UI
       setIssue(prev => ({ ...prev, status: newStatus }));

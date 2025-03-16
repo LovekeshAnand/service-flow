@@ -267,7 +267,7 @@ const ServiceDetails = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       // Fetch both service details and activity data in parallel
       const [serviceResponse, activityResponse] = await Promise.all([
@@ -356,7 +356,7 @@ const ServiceDetails = () => {
   const handleUpvoteService = useCallback(async () => {
     try {
       setIsUpvoting(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       await axios.post(`${API_BASE_URL}/services/${id}/upvote`, {}, {
         headers: { Authorization: `Bearer ${token}` },
@@ -396,7 +396,7 @@ const ServiceDetails = () => {
   const handleSubmitIssue = useCallback(async (formData) => {
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       await axios.post(`${API_BASE_URL}/issues/service/${id}/issues`, formData, {
         headers: {
@@ -425,7 +425,7 @@ const ServiceDetails = () => {
   const handleSubmitFeedback = useCallback(async (formData) => {
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       await axios.post(`${API_BASE_URL}/feedbacks/service/${id}/feedbacks`, formData, {
         headers: {

@@ -59,7 +59,7 @@ export default function UserIssuesPage() {
     setError(null);
     try {
       // Check if token exists and log it (partially)
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         console.warn("No authentication token found in localStorage");
       } else {

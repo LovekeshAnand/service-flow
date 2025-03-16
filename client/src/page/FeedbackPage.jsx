@@ -47,7 +47,7 @@ export default function FeedbacksPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       
       
       const response = await fetch(
@@ -75,7 +75,7 @@ export default function FeedbacksPage() {
 
   async function handleVote(feedbackId, voteType) {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accesstoken');
       if (!token) {
         setError("Please login to vote on feedback");
         return;

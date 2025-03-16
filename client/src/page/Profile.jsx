@@ -377,7 +377,7 @@ const UpvotedServices = ({ userId }) => {
   useEffect(() => {
     const fetchUpvotedServices = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
         const response = await axios.get(`${API_BASE_URL}/${userId}/upvoted-services?page=${currentPage}&limit=6`, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -535,7 +535,7 @@ const ProfilePage = () => {
       if (dataLoaded) return;
       
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
         
         if (!token) {
           throw new Error("Authentication required. Please log in.");
@@ -578,7 +578,7 @@ const ProfilePage = () => {
 
   const handleUpdate = async (updateData) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       
       if (!token) {
         throw new Error("Authentication required. Please log in.");

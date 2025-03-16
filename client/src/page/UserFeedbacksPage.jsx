@@ -54,7 +54,7 @@ export default function UserFeedbacksPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       const response = await axios.get(
         `${API_BASE_URL}/users/${userId}/feedbacks`, 

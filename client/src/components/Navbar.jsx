@@ -61,6 +61,9 @@ const Navbar = () => {
       console.log("Setting profile with userData.");
       setProfile(userData);
       showAlert("Success", "Authentication successful", "success");
+      if (userData.accessToken) {
+          localStorage.setItem("accessToken", userData.accessToken);
+      }
     } else {
       try {
         const storedProfile = localStorage.getItem("profile");

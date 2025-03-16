@@ -49,7 +49,7 @@ export default function IssuesPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       
       
       // Use the absolute URL with the correct API base URL
@@ -81,7 +81,7 @@ export default function IssuesPage() {
     event.stopPropagation();
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("accessToken");
       await axios.post(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/${voteType}`, 
         {},
