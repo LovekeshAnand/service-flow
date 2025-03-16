@@ -104,7 +104,7 @@ const Navbar = () => {
       ? `${API_BASE}/services/logout`
       : `${API_BASE}/users/logout`;
 
-    const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
     if (!token) {
       console.warn("⚠️ No token found, user might already be logged out.");
       showAlert("Warning", "No active session found.", "warning");
@@ -132,7 +132,7 @@ const Navbar = () => {
       showAlert("Error", "An error occurred while logging out.", "error");
     } finally {
       localStorage.removeItem("profile");
-      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
       setProfile(null);
       setIsMenuOpen(false);
     }
