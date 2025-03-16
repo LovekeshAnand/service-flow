@@ -106,7 +106,6 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
             headers: {
                 "Content-Type": "application/json",
             },
-            credentials: "include",  // ✅ Ensure cookies are sent with request
             body: JSON.stringify({
                 email: formData.email.trim(),
                 password: formData.password,
@@ -114,54 +113,35 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
         });
 
         const responseData = await response.json();
+        console.log("🔍 Login Response:", responseData); // ✅ Debugging
 
         if (response.ok && responseData.data) {
-            let userData;
-            const accessToken = responseData.data.accessToken;
+            const accessToken = responseData.data.token;  // ✅ Ensure this matches backend response
+            console.log("🔑 Received Token:", accessToken); // ✅ Debugging
 
-            if (loginType === "user") {
-                userData = responseData.data.user;
-            } else {
-                userData = responseData.data.service;
-                if (userData) {
-                    userData.isService = true;
-                }
-            }
-
-            if (!userData) {
-                console.error("No user/service data in response:", responseData);
-                setErrorMessage("Login successful but user data is missing.");
-                showAlert("Error", "Login successful but user data is missing.", "error");
+            if (!accessToken) {
+                setErrorMessage("Token is missing in the response.");
                 return;
             }
 
-            // ✅ Store token properly
-            if (accessToken) {
-              localStorage.setItem("accessToken", accessToken);  // ✅ Store with correct key
-          
-              document.cookie = `accessToken=${accessToken}; path=/; Secure; SameSite=Strict`; // ✅ Store in cookies (optional)
-              
-              console.log("✅ Token stored in localStorage:", localStorage.getItem("accessToken")); // Debugging
-          }
-          
+            // Store the token in localStorage
+            localStorage.setItem("accessToken", accessToken);
+            console.log("✅ Token stored in localStorage:", localStorage.getItem("accessToken"));
 
-            localStorage.setItem("profile", JSON.stringify(userData));
-
-            if (setUser) {
-                setUser(userData);
-            }
-
-            if (onLoginSuccess) {
-                onLoginSuccess(userData);
+            // Save user profile
+            let userData = responseData.data.user || responseData.data.service;
+            if (userData) {
+                localStorage.setItem("profile", JSON.stringify(userData));
+                if (setUser) setUser(userData);
+                if (onLoginSuccess) onLoginSuccess(userData);
             }
 
             showAlert("Login Successful", "🎉 You have successfully logged in!", "success");
-
             resetForm();
             handleClose();
         } else {
-            showAlert("Login Failed", responseData.message || "❌ Login failed. Check your credentials and try again.", "error");
-            setErrorMessage(responseData.message || "❌ Login failed. Check your credentials and try again.");
+            showAlert("Login Failed", responseData.message || "❌ Login failed. Try again.", "error");
+            setErrorMessage(responseData.message || "❌ Login failed. Try again.");
         }
     } catch (error) {
         console.error("❌ Error:", error);
@@ -169,6 +149,7 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
         setErrorMessage("Something went wrong. Please try again.");
     }
 };
+
 
 
   if (!isOpen) return null;
