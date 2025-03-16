@@ -60,11 +60,12 @@ const Home = () => {
 
   const toggleMute = () => {
     if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(isMuted);
+      videoRef.current.muted  
+      
     } else {
-      setIsMuted(!isMuted);
+      !videoRef.current.muted;
     }
+    setIsMuted(!isMuted);
   };
 
   // Modern animated feature card component
