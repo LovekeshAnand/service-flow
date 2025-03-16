@@ -17,7 +17,7 @@ import {
   updateIssueStatus 
 } from "../controllers/issue.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
-import { registerLimiter } from "../../middleware/rateLimiter.js";
+import { registerLimiter } from "../middleware/rateLimiter.js";
 import { asyncHandler } from "../utils/asyncHandler.js"; // Make sure to import asyncHandler
 
 const router = express.Router();

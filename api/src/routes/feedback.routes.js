@@ -16,7 +16,7 @@ import {
     getUserVote
 } from "../controllers/feedback.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
-import { registerLimiter } from "../../middleware/rateLimiter.js";
+import { registerLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
