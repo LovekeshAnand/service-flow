@@ -119,6 +119,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
         : `${API_BASE}/services/register`;
   
     const formDataToSend = new FormData();
+    const token = localStorage.getItem("token"); // Retrieve token from localStorage
   
     if (registerType === "user") {
       if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
@@ -151,26 +152,24 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
       const response = await fetch(registerUrl, {
         method: "POST",
         body: formDataToSend,
+        headers: token ? { Authorization: `Bearer ${token}` } : {}, // Add token if available
       });
   
       const responseData = await response.json();
   
       if (response.ok && responseData.data) {
-        // Handle different response structures for user and service registration
         let userData;
         const accessToken = responseData.data.accessToken;
-        
+  
         if (registerType === "user") {
           userData = responseData.data.user;
         } else {
           userData = responseData.data.service;
-          // For services, add isService flag if it doesn't exist
           if (userData) {
             userData.isService = true;
           }
         }
-        
-        // Verify we have user data before proceeding
+  
         if (!userData) {
           console.error("No user/service data in response.");
           setErrorMessage("Registration successful but user data is missing.");
@@ -180,37 +179,32 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
         if (accessToken) {
           localStorage.setItem("token", accessToken);
         }
-        
-        // Store in localStorage
-        localStorage.setItem("profile", JSON.stringify(userData));
-        
   
-        // Call both callbacks with the user data
+        localStorage.setItem("profile", JSON.stringify(userData));
+  
         if (setUser) {
-          setUser(userData); // Update state immediately in Navbar
+          setUser(userData);
         }
-        
+  
         if (onRegisterSuccess) {
-          onRegisterSuccess(userData); // Pass the user data to the callback
+          onRegisterSuccess(userData);
         }
-        
-        // Replace alert with custom alert
+  
         showAlert("Registration Successful", "🎉 Your account has been created successfully!", "success");
-        
+  
         resetForm();
         handleClose();
       } else {
-        // Show error in custom alert instead of in the form
         showAlert("Registration Failed", responseData.message || "❌ Registration failed. Try again.", "error");
         setErrorMessage(responseData.message || "❌ Registration failed. Try again.");
       }
     } catch (error) {
       console.error("❌ Error:", error);
-      // Show network error in custom alert
       showAlert("Registration Error", "Something went wrong. Please try again.", "error");
       setErrorMessage("Something went wrong. Please try again.");
     }
   };
+  
 
   if (!isOpen) return null;
 

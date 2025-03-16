@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit"
+import rateLimit from "express-rate-limit";
 
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -7,7 +7,16 @@ const registerLimiter = rateLimit({
     success: false,
     message: "Too many requests. Please try again later.",
   },
-  headers: true, // Include rate limit headers in response
+  headers: true, // Include default rate limit headers
+  handler: (req, res, next) => {
+    res.set("X-RateLimit-Limit", 5); // Set max limit header
+    res.set("X-RateLimit-Remaining", 0); // Always 0 when limit is exceeded
+    res.set("X-RateLimit-Reset", new Date(Date.now() + 15 * 60 * 1000).toISOString()); // Reset time
+    res.status(429).json({
+      success: false,
+      message: "Too many requests. Please try again later.",
+    });
+  },
 });
 
-export {registerLimiter}
+export { registerLimiter };
