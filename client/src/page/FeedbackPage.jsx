@@ -351,12 +351,6 @@ export default function FeedbacksPage() {
                           </div>
                         )}
                         
-                        <div className="flex items-center gap-1 text-blue-400/70 text-sm">
-                          <MessageSquare size={14} />
-                          <span>
-                            {feedback.comments?.length || 0} comments
-                          </span>
-                        </div>
                       </div>
                       
                       <div className="flex items-center gap-2 mt-2 sm:mt-0">
