@@ -116,8 +116,7 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
         console.log("🔍 Login Response:", responseData);
 
         if (response.ok && responseData.data) {
-            // Try both "token" and "accessToken" to handle backend inconsistency
-            const accessToken = responseData.data.token || responseData.data.accessToken;
+            const accessToken = responseData.data.accessToken || responseData.data.token; // Handle both keys
             console.log("🔑 Received Token:", accessToken);
 
             if (!accessToken) {
@@ -131,7 +130,7 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
 
             let userData = responseData.data.user || responseData.data.service;
             if (userData) {
-                if (loginType === "service") userData.isService = true; // Add flag for service
+                if (loginType === "service") userData.isService = true;
                 localStorage.setItem("profile", JSON.stringify(userData));
                 if (setUser) setUser(userData);
                 if (onLoginSuccess) onLoginSuccess(userData);
