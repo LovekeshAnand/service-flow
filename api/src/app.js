@@ -7,6 +7,7 @@ import { upload } from "./middleware/multer.middleware.js";
 const app = express();
 
 // ✅ Middleware Configuration
+app.set("trust proxy", true);
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
