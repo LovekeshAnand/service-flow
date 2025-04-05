@@ -128,7 +128,7 @@ const handleClose = () => {
     const existingToken = localStorage.getItem("accessToken");
     console.log("Existing Token (before API call):", existingToken);
 
-    // Populate formDataToSend (unchanged logic)
+    // Populate formDataToSend
     if (registerType === "user") {
         if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
             setErrorMessage("⚠️ All fields are required.");
@@ -169,7 +169,7 @@ const handleClose = () => {
 
         if (response.ok && responseData.data) {
             const accessToken = responseData.data.accessToken;
-            console.log("Extracted accessToken:", accessToken); // Verify token value
+            console.log("Extracted accessToken:", accessToken);
 
             let userData;
             if (registerType === "user") {
@@ -186,31 +186,30 @@ const handleClose = () => {
             }
 
             if (accessToken) {
-                // Step-by-step storage check
-                console.log("Before setting token:", localStorage.getItem("accessToken"));
                 localStorage.setItem("accessToken", accessToken);
-                console.log("Immediately after setItem:", localStorage.getItem("accessToken"));
-
-                // Double-check after a tiny delay to catch async interference
-                setTimeout(() => {
-                    console.log("After 100ms delay:", localStorage.getItem("accessToken"));
-                }, 100);
+                console.log("Token stored:", localStorage.getItem("accessToken"));
             } else {
-                console.log("No accessToken found in response data.");
+                console.warn("No accessToken in response data.");
             }
 
             localStorage.setItem("profile", JSON.stringify(userData));
             console.log("Profile stored:", localStorage.getItem("profile"));
 
             if (setUser) setUser(userData);
-            if (onRegisterSuccess) onRegisterSuccess(userData);
+            if (onRegisterSuccess) {
+                console.log("Before onRegisterSuccess:", localStorage.getItem("accessToken"));
+                onRegisterSuccess(userData);
+                console.log("After onRegisterSuccess:", localStorage.getItem("accessToken"));
+            }
 
             showAlert("Registration Successful", "🎉 Your account has been created successfully!", "success");
-
-            // Log before closing to check if resetForm/handleClose interferes
-            console.log("Before resetForm/handleClose:", localStorage.getItem("accessToken"));
             resetForm();
             handleClose();
+
+            // Final check to help you debug post-function behavior
+            setTimeout(() => {
+                console.log("Final token check after all operations:", localStorage.getItem("accessToken"));
+            }, 500);
         } else {
             showAlert("Registration Failed", responseData.message || "❌ Registration failed. Try again.", "error");
             setErrorMessage(responseData.message || "❌ Registration failed. Try again.");
@@ -221,7 +220,6 @@ const handleClose = () => {
         setErrorMessage("Something went wrong. Please try again.");
     }
 };
-
   
 
   if (!isOpen) return null;
