@@ -160,10 +160,12 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
         });
 
         const responseData = await response.json();
+        console.log(responseData)
 
         if (response.ok && responseData.data) {
             let userData;
             const accessToken = responseData.data.accessToken;
+            
 
             if (registerType === "user") {
                 userData = responseData.data.user;
