@@ -121,7 +121,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
 
     const formDataToSend = new FormData();
     const token = localStorage.getItem("accessToken");
-    console.log("Token stored:", localStorage.getItem("accessToken"));
+    
 
     if (registerType === "user") {
         if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
@@ -161,6 +161,7 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
 
         const responseData = await response.json();
         console.log(responseData)
+        console.log("Token stored:", localStorage.getItem("accessToken"));
 
         if (response.ok && responseData.data) {
             let userData;
