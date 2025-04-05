@@ -113,43 +113,46 @@ const LoginPopup = ({ isOpen, onClose, onLoginSuccess, setUser }) => {
         });
 
         const responseData = await response.json();
-        console.log("🔍 Login Response:", responseData); // ✅ Debugging
+        console.log("🔍 Login Response:", responseData);
 
         if (response.ok && responseData.data) {
-            const accessToken = responseData.data.token;  // ✅ Ensure this matches backend response
-            console.log("🔑 Received Token:", accessToken); // ✅ Debugging
+            // Try both "token" and "accessToken" to handle backend inconsistency
+            const accessToken = responseData.data.token || responseData.data.accessToken;
+            console.log("🔑 Received Token:", accessToken);
 
             if (!accessToken) {
                 setErrorMessage("Token is missing in the response.");
+                console.error("❌ No token found in response data:", responseData.data);
                 return;
             }
 
-            // Store the token in localStorage
             localStorage.setItem("accessToken", accessToken);
             console.log("✅ Token stored in localStorage:", localStorage.getItem("accessToken"));
 
-            // Save user profile
             let userData = responseData.data.user || responseData.data.service;
             if (userData) {
+                if (loginType === "service") userData.isService = true; // Add flag for service
                 localStorage.setItem("profile", JSON.stringify(userData));
                 if (setUser) setUser(userData);
                 if (onLoginSuccess) onLoginSuccess(userData);
+            } else {
+                console.warn("⚠️ No user/service data in response:", responseData.data);
             }
 
             showAlert("Login Successful", "🎉 You have successfully logged in!", "success");
             resetForm();
             handleClose();
         } else {
+            console.error("❌ Login failed with status:", response.status, "Message:", responseData.message);
             showAlert("Login Failed", responseData.message || "❌ Login failed. Try again.", "error");
             setErrorMessage(responseData.message || "❌ Login failed. Try again.");
         }
     } catch (error) {
-        console.error("❌ Error:", error);
+        console.error("❌ Network Error:", error);
         showAlert("Login Error", "Something went wrong. Please try again.", "error");
         setErrorMessage("Something went wrong. Please try again.");
     }
 };
-
 
 
   if (!isOpen) return null;
