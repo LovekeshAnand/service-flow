@@ -40,12 +40,16 @@ const IssueCommentPage = () => {
 
   // Get token with a helper function to ensure consistency
   const getAuthToken = () => {
-    return localStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
+    console.log("Retrieved token:", token); // Debug log
+    return token;
   };
 
-  // Create headers consistently
   const getAuthHeaders = () => {
     const token = getAuthToken();
+    if (!token) {
+      console.warn("No access token found in localStorage");
+    }
     return {
       "Content-Type": "application/json",
       Authorization: token ? `Bearer ${token}` : ""
