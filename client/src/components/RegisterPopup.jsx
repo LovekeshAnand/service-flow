@@ -68,28 +68,33 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
     };
   }, [isOpen, onClose]);
 
-  const handleClose = () => {
-    // Set animateIn to false to trigger exit animations
-    setAnimateIn(false);
-    // Delay actual closing to allow exit animations to play
-    setTimeout(() => onClose(), 300);
-  };
 
   const resetForm = () => {
+    console.log("resetForm - Token before reset:", localStorage.getItem("accessToken"));
     setRegisterType(null);
     setFormData({
-      username: "",
-      fullname: "",
-      email: "",
-      password: "",
-      serviceName: "",
-      description: "",
-      serviceLink: "",
-      logo: null,
+        username: "",
+        fullname: "",
+        email: "",
+        password: "",
+        serviceName: "",
+        description: "",
+        serviceLink: "",
+        logo: null,
     });
     setLogoPreview(null);
     setErrorMessage("");
-  };
+    console.log("resetForm - Token after reset:", localStorage.getItem("accessToken"));
+};
+
+const handleClose = () => {
+    console.log("handleClose - Token before close:", localStorage.getItem("accessToken"));
+    setAnimateIn(false);
+    setTimeout(() => {
+        onClose();
+        console.log("handleClose - Token after close:", localStorage.getItem("accessToken"));
+    }, 300);
+};
 
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
@@ -120,9 +125,10 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
             : `${API_BASE}/services/register`;
 
     const formDataToSend = new FormData();
-    const token = localStorage.getItem("accessToken");
-    
+    const existingToken = localStorage.getItem("accessToken");
+    console.log("Existing Token (before API call):", existingToken);
 
+    // Populate formDataToSend (unchanged logic)
     if (registerType === "user") {
         if (!formData.username.trim() || !formData.fullname.trim() || !formData.email.trim() || !formData.password) {
             setErrorMessage("⚠️ All fields are required.");
@@ -142,7 +148,6 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
         formDataToSend.append("password", formData.password);
         formDataToSend.append("description", formData.description.trim());
         formDataToSend.append("serviceLink", formData.serviceLink.trim());
-
         if (!formData.logo) {
             setErrorMessage("⚠️ Please upload a logo.");
             return;
@@ -155,26 +160,23 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
             method: "POST",
             body: formDataToSend,
             headers: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {}), // ✅ Add Authorization header if token exists
+                ...(existingToken ? { Authorization: `Bearer ${existingToken}` } : {}),
             },
         });
 
         const responseData = await response.json();
-        console.log(responseData)
-        console.log("Token stored:", localStorage.getItem("accessToken"));
+        console.log("API Response:", responseData);
 
         if (response.ok && responseData.data) {
-            let userData;
             const accessToken = responseData.data.accessToken;
-            
+            console.log("Extracted accessToken:", accessToken); // Verify token value
 
+            let userData;
             if (registerType === "user") {
                 userData = responseData.data.user;
             } else {
                 userData = responseData.data.service;
-                if (userData) {
-                    userData.isService = true;
-                }
+                if (userData) userData.isService = true;
             }
 
             if (!userData) {
@@ -184,21 +186,29 @@ const RegisterPopup = ({ isOpen, onClose, onRegisterSuccess, setUser }) => {
             }
 
             if (accessToken) {
-                localStorage.setItem("accessToken", accessToken); // ✅ Store token in localStorage
+                // Step-by-step storage check
+                console.log("Before setting token:", localStorage.getItem("accessToken"));
+                localStorage.setItem("accessToken", accessToken);
+                console.log("Immediately after setItem:", localStorage.getItem("accessToken"));
+
+                // Double-check after a tiny delay to catch async interference
+                setTimeout(() => {
+                    console.log("After 100ms delay:", localStorage.getItem("accessToken"));
+                }, 100);
+            } else {
+                console.log("No accessToken found in response data.");
             }
 
             localStorage.setItem("profile", JSON.stringify(userData));
+            console.log("Profile stored:", localStorage.getItem("profile"));
 
-            if (setUser) {
-                setUser(userData);
-            }
-
-            if (onRegisterSuccess) {
-                onRegisterSuccess(userData);
-            }
+            if (setUser) setUser(userData);
+            if (onRegisterSuccess) onRegisterSuccess(userData);
 
             showAlert("Registration Successful", "🎉 Your account has been created successfully!", "success");
 
+            // Log before closing to check if resetForm/handleClose interferes
+            console.log("Before resetForm/handleClose:", localStorage.getItem("accessToken"));
             resetForm();
             handleClose();
         } else {
