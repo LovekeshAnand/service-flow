@@ -20,7 +20,7 @@ const router = express.Router();
 router.post("/register", upload.none(), registerLimiter, registerUser);
 
 // ✅ Login user (Public)
-router.post("/login", upload.none(), registerLimiter, verifyJWT, loginUser);
+router.post("/login", upload.none(), registerLimiter, loginUser);
 
 // ✅ Logout user (Protected)
 router.post("/logout", verifyJWT, logoutUser);
