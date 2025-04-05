@@ -7,7 +7,13 @@ import { upload } from "./middleware/multer.middleware.js";
 const app = express();
 
 // ✅ Middleware Configuration
-app.set("trust proxy", true);
+app.set("trust proxy", 1); // ✅ trust first proxy (Render)
+app.use((req, res, next) => {
+    console.log("Client IP:", req.ip);
+    console.log("X-Forwarded-For:", req.headers["x-forwarded-for"]);
+    next();
+  });
+  
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
