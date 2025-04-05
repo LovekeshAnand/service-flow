@@ -38,6 +38,20 @@ const IssueCommentPage = () => {
     statusEndpoint: true
   });
 
+  // Get token with a helper function to ensure consistency
+  const getAuthToken = () => {
+    return localStorage.getItem("accessToken");
+  };
+
+  // Create headers consistently
+  const getAuthHeaders = () => {
+    const token = getAuthToken();
+    return {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : ""
+    };
+  };
+
   useEffect(() => {
     if (serviceId && issueId) {
       fetchIssue();
@@ -69,7 +83,7 @@ const IssueCommentPage = () => {
         const response = await axios.get(
           `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/vote`,
           { 
-            headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+            headers: getAuthHeaders(),
             withCredentials: true
           }
         );
@@ -114,12 +128,11 @@ const IssueCommentPage = () => {
   // Helper function to check if an API endpoint is working
   const checkApiEndpoint = async (endpoint) => {
     try {
-      const token = localStorage.getItem("accessToken");
       // Use HEAD request to check endpoint without fetching data
       await axios.head(
         `${API_BASE_URL}${endpoint}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
@@ -138,9 +151,7 @@ const IssueCommentPage = () => {
       const response = await axios.get(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}`, 
         {
-          headers: {
-            Authorization: localStorage.getItem("accessToken") ? `Bearer ${localStorage.getItem("accessToken")}` : ""
-          },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
@@ -157,6 +168,7 @@ const IssueCommentPage = () => {
         setUserVote(issueData.userVote);
       }
     } catch (err) {
+      console.error("Error fetching issue:", err);
       setError(err.response?.data?.message || err.message || "Failed to fetch issue details");
     } finally {
       setLoading(false);
@@ -221,9 +233,7 @@ const IssueCommentPage = () => {
           endpoint,
           {},
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-            },
+            headers: getAuthHeaders(),
             withCredentials: true
           }
         );
@@ -237,9 +247,7 @@ const IssueCommentPage = () => {
               `${API_BASE_URL}/issues/${issueId}/${voteType}`,
               {},
               {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-                },
+                headers: getAuthHeaders(),
                 withCredentials: true
               }
             );
@@ -253,6 +261,7 @@ const IssueCommentPage = () => {
       }
       
     } catch (err) {
+      console.error("Vote error:", err);
       setError(`Failed to ${voteType} issue. Please try again later.`);
       
       // Revert to original state by refreshing data
@@ -270,17 +279,12 @@ const IssueCommentPage = () => {
     
     setCommentLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      
       // Updated endpoint structure
       const response = await axios.post(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/comments`,
         { message: newComment },
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : ""
-          },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
@@ -289,6 +293,7 @@ const IssueCommentPage = () => {
       setComments([...comments, response.data.data]);
       setNewComment("");
     } catch (err) {
+      console.error("Add comment error:", err);
       setError(err.response?.data?.message || err.message || "Failed to add comment");
       
       // Clear error after 3 seconds
@@ -300,8 +305,6 @@ const IssueCommentPage = () => {
 
   const handleLikeComment = async (commentId) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      
       // Optimistically update UI first
       setComments(prevComments => 
         prevComments.map(comment => {
@@ -320,9 +323,7 @@ const IssueCommentPage = () => {
         `${API_BASE_URL}/issues/comments/${commentId}/like`, 
         {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
@@ -339,6 +340,7 @@ const IssueCommentPage = () => {
         )
       );
     } catch (err) {
+      console.error("Like comment error:", err);
       setError("Failed to toggle like. Please try again later.");
       
       // Revert by refreshing comments
@@ -351,8 +353,6 @@ const IssueCommentPage = () => {
 
   const handleLikeReply = async (commentId, replyId) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      
       // Optimistically update UI first
       setComments(prevComments => 
         prevComments.map(comment => {
@@ -379,9 +379,7 @@ const IssueCommentPage = () => {
         `${API_BASE_URL}/issues/replies/${replyId}/like`, 
         {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
@@ -406,6 +404,7 @@ const IssueCommentPage = () => {
         })
       );
     } catch (err) {
+      console.error("Like reply error:", err);
       setError("Failed to toggle reply like. Please try again later.");
       
       // Revert by refreshing comments
@@ -421,17 +420,12 @@ const IssueCommentPage = () => {
     
     setReplyLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      
       // API call to add a reply to a comment
       const response = await axios.post(
         `${API_BASE_URL}/issues/comments/${commentId}/replies`,
         { message: newReply },
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : ""
-          },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
@@ -451,6 +445,7 @@ const IssueCommentPage = () => {
       setNewReply("");
       setSelectedReply(null);
     } catch (err) {
+      console.error("Reply error:", err);
       setError(err.response?.data?.message || err.message || "Failed to add reply");
       
       // Clear error after 3 seconds
@@ -469,8 +464,6 @@ const IssueCommentPage = () => {
         return;
       }
       
-      const token = localStorage.getItem("accessToken");
-      
       // Optimistically update UI
       setIssue(prev => ({ ...prev, status: newStatus }));
       
@@ -478,14 +471,12 @@ const IssueCommentPage = () => {
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/status`,
         { status: newStatus },
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
+          headers: getAuthHeaders(),
           withCredentials: true
         }
       );
     } catch (err) {
+      console.error("Status update error:", err);
       setError(err.response?.data?.message || err.message || "Failed to update status");
       
       // Revert to original status
