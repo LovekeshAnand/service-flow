@@ -13,8 +13,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        // Check localStorage for token
-        const token = localStorage.getItem('token');
+        // Check localStorage for token using 'accessToken' key
+        const token = localStorage.getItem('accessToken');
         
         if (token) {
           // For now, just mock user data based on the token
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error('Authentication error:', err);
         setError('Failed to authenticate');
-        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken'); // Updated to 'accessToken'
       } finally {
         setLoading(false);
       }
@@ -57,8 +57,8 @@ export const AuthProvider = ({ children }) => {
         token: 'mock-jwt-token'
       };
       
-      // Store token
-      localStorage.setItem('token', data.token);
+      // Store token using 'accessToken' key
+      localStorage.setItem('accessToken', data.token);
       
       // Set user
       setUser(data.user);
@@ -89,8 +89,8 @@ export const AuthProvider = ({ children }) => {
         token: 'mock-jwt-token'
       };
       
-      // Store token
-      localStorage.setItem('token', data.token);
+      // Store token using 'accessToken' key
+      localStorage.setItem('accessToken', data.token);
       
       // Set user
       setUser(data.user);
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken'); // Already correct
     setUser(null);
   };
 
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
 
   // Get authentication token
   const getToken = () => {
-    return localStorage.getItem('token');
+    return localStorage.getItem('accessToken'); // Already correct
   };
 
   // Provide auth context value
