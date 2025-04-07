@@ -273,7 +273,7 @@ const Home = () => {
           </h1>
           
           <p className="text-xl sm:text-2xl text-blue-200/90 max-w-2xl mx-auto font-light leading-relaxed mt-4 mb-8">
-            Your complete platform for seamless service management and delivery. Automate, optimize, and grow.
+          A comprehensive <b>platform</b> enabling users submit <strong>feedback</strong> and service providers <b>manage</b>, <b>promote</b>, and <b>optimize</b>  their offerings for efficient delivery and growth.
           </p>
 
           {/* Single centered CTA button */}

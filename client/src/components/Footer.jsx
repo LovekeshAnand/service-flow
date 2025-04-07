@@ -88,7 +88,7 @@ const Footer = () => {
             </h3>
             <div className="flex space-x-4">
               <a 
-                href="https://x.com/LovekeshAnand07" 
+                href="https://x.com/" 
                 target="blank"
                 className="w-10 h-10 rounded-full bg-[#0a4b8c]/20 flex items-center justify-center border border-[#5396e3]/30 hover:border-[#5396e3]/50 hover:bg-[#0a4b8c]/30 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-300"
                 aria-label="Twitter"
@@ -96,7 +96,7 @@ const Footer = () => {
                 <Twitter size={20} className="text-blue-200" />
               </a>
               <a 
-                href="https://www.instagram.com/lovekesh_09/" 
+                href="https://www.instagram.com/" 
                 target="blank"
                 className="w-10 h-10 rounded-full bg-[#0a4b8c]/20 flex items-center justify-center border border-[#5396e3]/30 hover:border-[#5396e3]/50 hover:bg-[#0a4b8c]/30 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-300"
                 aria-label="Instagram"
@@ -104,7 +104,7 @@ const Footer = () => {
                 <Instagram size={20} className="text-blue-200" />
               </a>
               <a 
-                href="https://www.linkedin.com/in/lovekesh-anand-443138318/"
+                href="https://www.linkedin.com/"
                 target="blank"
                 className="w-10 h-10 rounded-full bg-[#0a4b8c]/20 flex items-center justify-center border border-[#5396e3]/30 hover:border-[#5396e3]/50 hover:bg-[#0a4b8c]/30 hover:shadow-md hover:shadow-blue-500/20 transition-all duration-300"
                 aria-label="LinkedIn"
@@ -114,10 +114,10 @@ const Footer = () => {
             </div>
             <div className="pt-4">
               <a 
-                href="lovekeshanand6@gmail.com" 
+                href="skynet.ccorp@gmail.com" 
                 className="text-blue-200 hover:text-white transition-colors duration-300"
               >
-                lovekeshanand6@gmail.com
+                skynet.ccorp@gmail.com
               </a>
             </div>
           </div>
@@ -138,7 +138,7 @@ const Footer = () => {
         {/* Copyright section */}
         <div className="mt-16 pt-8 border-t border-blue-900/30 flex flex-col items-center justify-center text-center">
           <p className="text-blue-200/70">
-            © {currentYear} Service Flow. All rights reserved.
+           Built By SkyNet: © {currentYear} Service Flow. All rights reserved.
           </p>
         </div>
 
