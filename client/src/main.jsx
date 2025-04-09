@@ -8,9 +8,9 @@ import LenisProvider from "./components/LenisProvider";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <LenisProvider>
-      <AlertProvider> {/* ✅ Wrap App with AlertProvider */}
-        <App />
-      </AlertProvider>
+    <AlertProvider> {/* ✅ Wrap App with AlertProvider */}
+      <App />
+    </AlertProvider>
     </LenisProvider>
   </StrictMode>
 );
