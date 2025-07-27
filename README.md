@@ -139,15 +139,9 @@ Built to streamline how startups, developers, and service-based businesses colle
 ## 🧑‍💻 Author
 
 **Lovekesh Anand**  
-🔗 [LinkedIn](https://linkedin.com/in/lovekeshand)  
-🐦 [Twitter](https://twitter.com/lovekeshcodes)  
-📧 lovekeshandan.dev@gmail.com  
+📧 lovekeshanand6@gmail.com
 
 ---
-
-## 📃 License
-
-MIT License
 
 ---
 
