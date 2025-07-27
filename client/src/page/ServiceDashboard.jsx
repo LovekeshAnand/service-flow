@@ -15,10 +15,10 @@ import StatCard from '@/components/StatCard';
 import IssuesLineChart from '@/components/LineChart';
 import UpdateServiceModal from '@/components/UpdateServiceModal';
 
-// Define the base API URL
+
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1/services";
 
-// Animated counter component
+
 const CounterCard = ({ icon: Icon, label, count, color, delay = 0 }) => {
   const [counter, setCounter] = useState(0);
   const cardRef = useRef(null);
@@ -82,11 +82,9 @@ const CounterCard = ({ icon: Icon, label, count, color, delay = 0 }) => {
 };
 
 const ServiceDashboard = () => {
-  // Get the service ID from URL params
+
   const { id: serviceId } = useParams();
   const navigate = useNavigate();
-  
-  // State for service data and UI states
   const [service, setService] = useState(null);
   const [activityData, setActivityData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +93,6 @@ const ServiceDashboard = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpvoting, setIsUpvoting] = useState(false);
   
-  // Fetch service details and activity data on component mount
   useEffect(() => {
     const fetchServiceDetails = async () => {
       try {
@@ -103,12 +100,10 @@ const ServiceDashboard = () => {
         
         const token = localStorage.getItem("token");
         const [serviceResponse, activityResponse] = await Promise.all([
-          // Fetch service details
           axios.get(`${API_BASE_URL}/${serviceId}`, {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
           }),
-          // Fetch service activity data
           axios.get(`${API_BASE_URL}/${serviceId}/activity`, {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
@@ -142,27 +137,20 @@ const ServiceDashboard = () => {
     fetchServiceDetails();
   }, [serviceId]);
   
-  // Generate service activity data as a fallback
   const generateServiceActivityData = (serviceData) => {
-    // Calculate days since creation
     const createdAt = new Date(serviceData.createdAt);
     const now = new Date();
     const daysSinceCreation = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
-    
-    // Generate data points based on real timestamps
     const data = [];
     let baseUpvotes = serviceData.upvotes;
     let baseIssues = serviceData.issues || 0;
     let baseFeedbacks = serviceData.feedbacks || 0;
     
-    // Create at least 7 data points, or one per day since creation (whichever is greater)
-    const numPoints = Math.max(7, Math.min(daysSinceCreation, 30)); // Cap at 30 points
+    const numPoints = Math.max(7, Math.min(daysSinceCreation, 30));
     
     for (let i = numPoints - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      
-      // Distribute metrics over time with more recent days having more activity
       const dailyUpvotes = i === 0 ? baseUpvotes : Math.max(0, Math.floor(baseUpvotes * (i / numPoints)));
       const dailyIssues = i === 0 ? baseIssues : Math.max(0, Math.floor(baseIssues * (i / numPoints)));
       const dailyFeedbacks = i === 0 ? baseFeedbacks : Math.max(0, Math.floor(baseFeedbacks * (i / numPoints)));
@@ -172,7 +160,7 @@ const ServiceDashboard = () => {
         upvotes: dailyUpvotes,
         issues: dailyIssues,
         feedbacks: dailyFeedbacks,
-        activity: Math.floor(Math.random() * 10) + 1, // Random activity metric
+        activity: Math.floor(Math.random() * 10) + 1,
       });
     }
     
@@ -184,18 +172,18 @@ const ServiceDashboard = () => {
     try {
         toast.info("Updating service details...");
 
-        const token = localStorage.getItem("accessToken"); // ✅ Get token from localStorage
-        console.log("🔑 Sending accessToken:", token); // ✅ Debugging
+        const token = localStorage.getItem("accessToken"); 
+        console.log("🔑 Sending accessToken:", token); 
 
         const response = await axios.patch(`${API_BASE_URL}/${serviceId}`, formData, {
             headers: { 
-                Authorization: `Bearer ${token}`, // ✅ Ensure token is sent
+                Authorization: `Bearer ${token}`, 
                 "Content-Type": "multipart/form-data"
             },
-            withCredentials: true,  // ✅ Ensure credentials are included
+            withCredentials: true,  
         });
 
-        console.log("✅ Update response:", response.data);
+        console.log(" Update response:", response.data);
         toast.success("Service updated successfully");
         window.location.reload();
     } catch (err) {
@@ -205,7 +193,7 @@ const ServiceDashboard = () => {
 };
 
   
-  // Handle service deletion
+
   const handleDeleteService = async () => {
     if (!window.confirm("Are you sure you want to delete this service? This action cannot be undone.")) {
       return;
@@ -221,7 +209,7 @@ const ServiceDashboard = () => {
       });
       
       toast.success("Service deleted successfully");
-      navigate("/services"); // Redirect to services page
+      navigate("/services");
     } catch (err) {
       setIsDeleting(false);
       const errorMessage = err.response?.data?.message || "Delete failed";
@@ -230,7 +218,7 @@ const ServiceDashboard = () => {
     }
   };
 
-  // Handle upvote service
+
   const handleUpvoteService = async () => {
     try {
       setIsUpvoting(true);
@@ -240,8 +228,7 @@ const ServiceDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
-      
-      // Update local state to reflect the upvote
+
       setService(prevService => ({
         ...prevService,
         upvotes: prevService.upvotes + 1
@@ -257,7 +244,7 @@ const ServiceDashboard = () => {
     }
   };
   
-  // Navigation handlers for "See All" buttons
+
   const navigateToAllIssues = () => {
     navigate(`/issues/${serviceId}`);
   };
@@ -266,7 +253,7 @@ const ServiceDashboard = () => {
     navigate(`/feedbacks/${serviceId}`);
   };
   
-  // Show loading state
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black">
@@ -276,7 +263,6 @@ const ServiceDashboard = () => {
     );
   }
   
-  // Show error state
   if (error || !service) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black px-4">
@@ -295,7 +281,7 @@ const ServiceDashboard = () => {
     );
   }
   
-  // Enhanced chart data with all metrics
+
   const chartData = {
     serviceData: activityData,
     serviceName: service.serviceName,
@@ -305,7 +291,6 @@ const ServiceDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-black pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
-        {/* Service Details Header (Moved from bottom to top) */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -336,7 +321,6 @@ const ServiceDashboard = () => {
               </div>
             </div>
             
-            {/* Navigation buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={navigateToAllIssues}

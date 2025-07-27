@@ -34,22 +34,22 @@ const feedbackSchema = new Schema(
         comments: [{ 
             type: Schema.Types.ObjectId, 
             ref: "Comment" 
-        }], // Supports multiple comments
+        }],
 
         upvotes: { 
             type: Number, 
             default: 0 
-        }, // Total upvotes
+        },
 
         downvotes: { 
             type: Number, 
             default: 0 
-        }, // Total downvotes
+        },
 
         netVotes: { 
             type: Number, 
             default: 0 
-        } // Computed as upvotes - downvotes
+        }
     },
     { 
         timestamps: true 

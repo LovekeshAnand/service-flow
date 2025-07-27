@@ -38,7 +38,6 @@ export default function UserIssuesPage() {
   }, [userId, debouncedSearch, sortBy, sortOrder, status, pagination.currentPage]);
 
   useEffect(() => {
-    // Animation timing and scroll tracking
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 300);
@@ -58,16 +57,12 @@ export default function UserIssuesPage() {
     setLoading(true);
     setError(null);
     try {
-      // Check if token exists and log it (partially)
       const token = localStorage.getItem("accessToken");
       if (!token) {
         console.warn("No authentication token found in localStorage");
       } else {
         console.log("found")
       }
-      
-      // Build API URL with proper status format
-      // Convert "in progress" to "in-progress" to match backend schema
       let statusParam = status;
       if (status === "in progress") {
         statusParam = "in-progress";
@@ -111,26 +106,20 @@ export default function UserIssuesPage() {
     }
   }
 
-  // Function to handle issue card click and navigate to issue detail page
   const handleIssueClick = (issue) => {
-    // Check if service data is available and get serviceId
     if (issue.service && issue.service._id) {
       navigate(`/services/${issue.service._id}/issues/${issue._id}`);
     } else {
-      // Fallback if service data is not available
       console.warn("Service information not available for this issue", issue);
-      // You could redirect to a general issue page as fallback
       navigate(`/issues/${issue._id}`);
     }
   };
 
-  // Function to display status with the correct format
   const formatStatus = (status) => {
     if (status === "in-progress") return "In Progress";
     return status ? status.charAt(0).toUpperCase() + status.slice(1) : "";
   };
 
-  // Function to get status badge color - updated to match IssuesPage styling 
   const getStatusColor = (status) => {
     switch(status?.toLowerCase()) {
       case 'open':
@@ -147,7 +136,6 @@ export default function UserIssuesPage() {
     }
   };
 
-  // Skeleton loader component
   const SkeletonCard = () => (
     <motion.div 
       initial={{ opacity: 0.5 }}
@@ -157,7 +145,6 @@ export default function UserIssuesPage() {
     />
   );
 
-  // Format date function
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
       year: 'numeric', 

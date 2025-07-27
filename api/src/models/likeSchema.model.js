@@ -6,16 +6,16 @@ const likeSchema = new Schema(
             type: Schema.Types.ObjectId, 
             ref: "User", 
             required: true 
-        }, // User who liked
+        }, 
 
         targetId: { 
             type: Schema.Types.ObjectId,
             required: true 
-        }, // Comment or Reply ID
+        }, 
 
         targetType: {
             type: String,
-            enum: ["Comment", "Reply"], // Defines what is being liked
+            enum: ["Comment", "Reply"], 
             required: true,
         },
     },

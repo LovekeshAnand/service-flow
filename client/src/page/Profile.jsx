@@ -10,7 +10,6 @@ import { Lock } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1/users";
 
-// Animated counter component
 const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
   const [counter, setCounter] = useState(0);
   const cardRef = useRef(null);
@@ -73,20 +72,20 @@ const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
   );
 };
 
-// Animated profile avatar
+
 const AnimatedProfileAvatar = ({ name }) => {
   return (
     <div className="relative h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48">
-      {/* Animated circles */}
+
       <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 animate-pulse" style={{ animationDuration: '3s' }}></div>
       <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-900 to-blue-800"></div>
       
-      {/* User initial */}
+
       <div className="absolute inset-0 flex items-center justify-center text-4xl md:text-5xl font-bold text-blue-100">
         {name?.charAt(0) || "U"}
       </div>
       
-      {/* Animated particles */}
+
       {[...Array(8)].map((_, i) => (
         <div 
           key={i}
@@ -102,8 +101,6 @@ const AnimatedProfileAvatar = ({ name }) => {
   );
 };
 
-// Update Profile Modal
-// Update Profile Modal
 const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   const [oldPassword, setOldPassword] = useState("");
   const [updateData, setUpdateData] = useState({
@@ -117,10 +114,10 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   const { showAlert } = useAlert();
   const [animateIn, setAnimateIn] = useState(false);
 
-  // Handle animation timing
+
   useEffect(() => {
     if (isOpen) {
-      // Small delay to trigger animations after modal appears
+
       setTimeout(() => setAnimateIn(true), 50);
     } else {
       setAnimateIn(false);
@@ -163,9 +160,9 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   }, [isOpen, onClose]);
 
   const handleClose = () => {
-    // Set animateIn to false to trigger exit animations
+
     setAnimateIn(false);
-    // Delay actual closing to allow exit animations to play
+
     setTimeout(() => onClose(), 300);
   };
 
@@ -174,7 +171,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     setErrorMessage("");
 
     if (!oldPassword) {
-      setErrorMessage("⚠️ Current password is required");
+      setErrorMessage(" Current password is required");
       return;
     }
 
@@ -193,23 +190,19 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
 
   return (
     <div className={`fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-lg transition-opacity duration-300 ${animateIn ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Animated background elements */}
+
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Animated gradient circles */}
+
         <div className="absolute w-[500px] h-[500px] rounded-full bg-gray-900/20 blur-[100px] top-[10%] -left-[200px] animate-pulse"></div>
         <div className="absolute w-[500px] h-[500px] rounded-full bg-gray-800/20 blur-[100px] bottom-[20%] -right-[200px] animate-pulse" style={{ animationDuration: '8s' }}></div>
-        
-        {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
-        
-        {/* Animated lines */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent opacity-30"></div>
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent transform translate-y-[40vh] opacity-30"></div>
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-500/20 to-transparent transform translate-y-[80vh] opacity-30"></div>
         </div>
         
-        {/* Animated particles */}
+
         {[...Array(12)].map((_, i) => (
           <div 
             key={i}
@@ -229,15 +222,15 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
         className={`max-w-md w-full bg-gradient-to-br from-black to-gray-900/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl shadow-gray-900/50 border border-gray-800/30 relative transition-all duration-500 
         ${animateIn ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}
       >
-        {/* Decorative corner accents */}
+ 
         <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-gray-500/30 rounded-tl-2xl"></div>
         <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-gray-500/30 rounded-br-2xl"></div>
         
-        {/* Glowing orbs decoration */}
+
         <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gray-500/10 blur-xl"></div>
         <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-gray-600/10 blur-xl"></div>
         
-        {/* Close button with animation */}
+
         <button
           onClick={handleClose}
           className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/50 hover:bg-gray-700/60 transition-all duration-300 hover:rotate-90 transform border border-gray-700/30 group z-10"
@@ -365,7 +358,7 @@ const UpdateProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
   );
 };
 
-// Upvoted Services Component
+
 const UpvotedServices = ({ userId }) => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -382,8 +375,7 @@ const UpvotedServices = ({ userId }) => {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });
-        
-        // Ensure we have a valid services array
+
         if (response.data?.data?.services && Array.isArray(response.data.data.services)) {
           setServices(response.data.data.services);
           setTotalPages(response.data.data.totalPages || 1);
@@ -436,7 +428,6 @@ const UpvotedServices = ({ userId }) => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {services.map((service, index) => {
-          // Skip any null or invalid services
           if (!service || typeof service !== 'object') return null;
           
           return (
@@ -455,7 +446,7 @@ const UpvotedServices = ({ userId }) => {
                     className="w-10 h-10 rounded-full mr-3"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = "https://via.placeholder.com/40"; // Fallback image
+                      e.target.src = "https://via.placeholder.com/40";
                     }}
                   />
                 ) : (

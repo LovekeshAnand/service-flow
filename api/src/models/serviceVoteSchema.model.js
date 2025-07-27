@@ -1,4 +1,3 @@
-// models/serviceVoteSchema.model.js
 import mongoose, { Schema } from "mongoose";
 
 const serviceVoteSchema = new Schema(
@@ -19,7 +18,6 @@ const serviceVoteSchema = new Schema(
   }
 );
 
-// Ensure a user can only vote once per service
 serviceVoteSchema.index({ user: 1, service: 1 }, { unique: true });
 
 export const ServiceVote = mongoose.model("ServiceVote", serviceVoteSchema);

@@ -24,12 +24,10 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
             throw new ApiError(401, "Invalid token structure: Missing ID.");
         }
 
-        // Try to find the entity as a user first
         let entity = await User.findById(entityId).select("-password -refreshToken");
         if (entity) {
             req.user = entity;
         } else {
-            // If not a user, check if it's a service
             entity = await Service.findById(entityId).select("-password -refreshToken");
             if (entity) {
                 req.service = entity;

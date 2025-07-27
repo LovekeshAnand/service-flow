@@ -9,7 +9,7 @@ import { Service } from "../models/serviceSchema.model.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-/** ✅ Generate Access and Refresh Tokens */
+
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -25,7 +25,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
   }
 };
 
-/** ✅ Register a New User */
+
 const registerUser = asyncHandler(async (req, res) => {
   const { username, email, fullname, password } = req.body;
 
@@ -46,17 +46,16 @@ const registerUser = asyncHandler(async (req, res) => {
     username: username.toLowerCase(),
   });
 
-  // Fetch created user without sensitive fields
+
   const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
-  // Generate tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
   if (!accessToken || !refreshToken) {
     throw new ApiError(500, "Failed to generate authentication tokens");
   }
 
-  // Set cookies securely
+
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -69,7 +68,7 @@ const registerUser = asyncHandler(async (req, res) => {
     sameSite: "Strict",
   });
 
-  // Send response
+
   return res.status(201).json(
     new ApiResponse(201, { 
       user: createdUser, 
@@ -79,7 +78,7 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 
-/** ✅ Login User */
+
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password} = req.body;
 
@@ -99,17 +98,16 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid user credentials!");
   }
 
-  // Fetch user without sensitive fields
+
   const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-  // Generate tokens
+
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
   if (!accessToken || !refreshToken) {
     throw new ApiError(500, "Failed to generate authentication tokens");
   }
 
-  // Set cookies securely
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -131,7 +129,6 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 
-/** ✅ Logout User */
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, { $set: { refreshToken: undefined } }, { new: true });
 
@@ -142,7 +139,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully!"));
 });
 
-/** ✅ Refresh Access Token */
+
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
@@ -170,7 +167,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-/** ✅ Update User (Requires Password Verification) */
 const updateUser = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { fullname, username, email, password, newPassword } = req.body;
@@ -184,7 +180,7 @@ const updateUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found.");
   }
 
-  // ✅ Require current password for verification
+
   if (!password) {
     throw new ApiError(400, "Current password is required to update details.");
   }
@@ -194,7 +190,6 @@ const updateUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Incorrect password.");
   }
 
-  // ✅ Check for duplicate username or email
   if (username && username !== user.username) {
     const usernameExists = await User.findOne({ username });
     if (usernameExists) {
@@ -218,7 +213,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
   await user.save();
 
-  // ✅ Fetch feedback and issue counts for the user
+
   const feedbacks = await Feedback.aggregate([
     { $match: { userId: user._id } },
     { $group: { _id: "$serviceId", count: { $sum: 1 } } }
@@ -230,7 +225,6 @@ const updateUser = asyncHandler(async (req, res) => {
   ]);
 
 
-  // ✅ Format response to show Service IDs & Counts
   const userStats = {
     feedbacks: feedbacks.map(({ _id, count }) => ({ serviceId: _id, count })),
     issues: issues.map(({ _id, count }) => ({ serviceId: _id, count })),
@@ -239,19 +233,16 @@ const updateUser = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, { user, userStats }, "User updated successfully."));
 });
 
-/** ✅ Get User Profile with Stats (Feedbacks, Issues with Services) */
-/** ✅ Get User Profile with Stats (Feedbacks, Issues with Services) */
 const getUserProfile = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
-  // ✅ Find user details
+
   const user = await User.findById(userId).select("fullname email username createdAt");
 
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
 
-  // ✅ Fetch , Feedbacks & Issues along with Services
   const [feedbacks, issues, upvotedServices] = await Promise.all([
     Feedback.aggregate([
       { $match: { openedBy: user._id } }, 
@@ -264,7 +255,6 @@ const getUserProfile = asyncHandler(async (req, res) => {
     ServiceVote.find({ user: user._id }).populate('service', 'serviceName logo')
   ]);
 
-  // ✅ Format response to show Service IDs & Counts with null checks
   const userStats = {
     feedbacks: feedbacks
       .filter(feedback => feedback && feedback._id)
@@ -273,7 +263,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       .filter(issue => issue && issue._id)
       .map(({ _id, count }) => ({ serviceId: _id, count })),
     upvotedServices: upvotedServices
-      .filter(vote => vote && vote.service) // Make sure service exists
+      .filter(vote => vote && vote.service)
       .map(vote => ({
         serviceId: vote.service._id,
         serviceName: vote.service.serviceName,
@@ -284,34 +274,28 @@ const getUserProfile = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, { user, userStats }, "User profile retrieved successfully."));
 });
 
-/** ✅ Get User Upvoted Services */
 const getUserUpvotedServices = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { page = 1, limit = 10 } = req.query;
 
-  // Verify user exists
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
 
-  // Ensure only the user can see their upvoted services
   if (req.user._id.toString() !== userId) {
     throw new ApiError(403, "Unauthorized: You can only view your own upvoted services.");
   }
 
-  // Count total upvoted services
   const totalUpvotedServices = await ServiceVote.countDocuments({ user: userId });
   const totalPages = Math.ceil(totalUpvotedServices / limit);
 
-  // Get upvoted services with pagination
   const upvotedServices = await ServiceVote.find({ user: userId })
     .populate('service', 'serviceName logo description upvotes')
     .skip((page - 1) * limit)
     .limit(parseInt(limit))
     .sort({ createdAt: -1 });
 
-  // Format response
   const services = upvotedServices.map(vote => vote.service);
 
   return res.status(200).json(
@@ -324,7 +308,6 @@ const getUserUpvotedServices = asyncHandler(async (req, res) => {
   );
 });
 
-/** ✅ Get All Issues Created By User with Search and Sorting */
 const getUserIssues = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { 
@@ -336,13 +319,13 @@ const getUserIssues = asyncHandler(async (req, res) => {
     status
   } = req.query;
 
-  // Verify user exists
+
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
 
-  // Ensure only the user or admins can see the user's issues
+
   if (req.user._id.toString() !== userId && req.user.role !== "admin") {
     throw new ApiError(403, "Unauthorized: You can only view your own issues.");
   }
@@ -351,10 +334,9 @@ const getUserIssues = asyncHandler(async (req, res) => {
   const limitInt = parseInt(limit);
   const skip = (pageInt - 1) * limitInt;
 
-  // Build the query
   const query = { openedBy: userId };
 
-  // Add search functionality
+
   if (search) {
     query.$or = [
       { title: { $regex: search, $options: "i" } },
@@ -362,26 +344,22 @@ const getUserIssues = asyncHandler(async (req, res) => {
     ];
   }
 
-  // Add status filter if provided
   if (status) {
     query.status = status;
   }
 
-  // Determine sort field and order
   const sortOptions = {};
   if (sortBy === "upvotes") {
     sortOptions.upvotes = sortOrder === "asc" ? 1 : -1;
   } else if (sortBy === "createdAt") {
     sortOptions.createdAt = sortOrder === "asc" ? 1 : -1;
   } else {
-    sortOptions.createdAt = -1; // Default sort by newest
+    sortOptions.createdAt = -1;
   }
 
-  // Count total issues matching the query
   const totalIssues = await Issue.countDocuments(query);
   const totalPages = Math.ceil(totalIssues / limitInt);
 
-  // Fetch issues
   const issues = await Issue.find(query)
     .populate("service", "serviceName logo")
     .select("title description status upvotes createdAt updatedAt service")
@@ -389,7 +367,6 @@ const getUserIssues = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limitInt);
 
-  // Calculate pagination info
   const paginationInfo = {
     totalIssues,
     totalPages,
@@ -415,7 +392,7 @@ const getUserIssues = asyncHandler(async (req, res) => {
   );
 });
 
-/** ✅ Get All Feedbacks Created By User with Search and Sorting */
+
 const getUserFeedbacks = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { 
@@ -427,13 +404,12 @@ const getUserFeedbacks = asyncHandler(async (req, res) => {
     rating
   } = req.query;
 
-  // Verify user exists
+
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
 
-  // Ensure only the user or admins can see the user's feedbacks
   if (req.user._id.toString() !== userId && req.user.role !== "admin") {
     throw new ApiError(403, "Unauthorized: You can only view your own feedbacks.");
   }
@@ -442,10 +418,8 @@ const getUserFeedbacks = asyncHandler(async (req, res) => {
   const limitInt = parseInt(limit);
   const skip = (pageInt - 1) * limitInt;
 
-  // Build the query
   const query = { openedBy: userId };
 
-  // Add search functionality
   if (search) {
     query.$or = [
       { title: { $regex: search, $options: "i" } },
@@ -453,12 +427,10 @@ const getUserFeedbacks = asyncHandler(async (req, res) => {
     ];
   }
 
-  // Add rating filter if provided
   if (rating) {
     query.rating = parseInt(rating);
   }
 
-  // Determine sort field and order
   const sortOptions = {};
   if (sortBy === "rating") {
     sortOptions.rating = sortOrder === "asc" ? 1 : -1;
@@ -467,14 +439,14 @@ const getUserFeedbacks = asyncHandler(async (req, res) => {
   } else if (sortBy === "createdAt") {
     sortOptions.createdAt = sortOrder === "asc" ? 1 : -1;
   } else {
-    sortOptions.createdAt = -1; // Default sort by newest
+    sortOptions.createdAt = -1;
   }
 
-  // Count total feedbacks matching the query
+
   const totalFeedbacks = await Feedback.countDocuments(query);
   const totalPages = Math.ceil(totalFeedbacks / limitInt);
 
-  // Fetch feedbacks
+
   const feedbacks = await Feedback.find(query)
     .populate("service", "serviceName logo")
     .select("title description rating upvotes createdAt updatedAt service")
@@ -482,7 +454,6 @@ const getUserFeedbacks = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limitInt);
 
-  // Calculate pagination info
   const paginationInfo = {
     totalFeedbacks,
     totalPages,
@@ -508,7 +479,6 @@ const getUserFeedbacks = asyncHandler(async (req, res) => {
   );
 });
 
-// Don't forget to add these to your exports
 export { 
   registerUser, 
   loginUser, 

@@ -16,10 +16,8 @@ import Header from "@/components/Header";
 import StatCard from "@/components/StatCard";
 import IssuesLineChart from "@/components/LineChart";
 
-// Updated base URL to match your backend structure
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
-// Animated counter component from ServiceDashboard
 const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
   const [counter, setCounter] = useState(0);
   const cardRef = useRef(null);
@@ -82,7 +80,6 @@ const CounterCard = ({ icon: Icon, label, count, delay = 0 }) => {
   );
 };
 
-// Reusable form component for issue and feedback submission
 const SubmissionForm = ({ 
   isOpen, 
   onClose, 
@@ -197,53 +194,41 @@ const ServiceDetails = () => {
   const [activityData, setActivityData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // State for form modals
   const [issueFormOpen, setIssueFormOpen] = useState(false);
   const [feedbackFormOpen, setFeedbackFormOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isUpvoting, setIsUpvoting] = useState(false);
   
-  // Ref to track if component is mounted
   const isMounted = useRef(true);
-  
-  // Ref to store the current showAlert function
   const showAlertRef = useRef(showAlert);
-  
-  // Update the ref whenever showAlert changes
   useEffect(() => {
     showAlertRef.current = showAlert;
   }, [showAlert]);
   
-  // Store navigate in ref to avoid dependency issues
   const navigateRef = useRef(navigate);
-  
-  // Update navigate ref when it changes
+
   useEffect(() => {
     navigateRef.current = navigate;
   }, [navigate]);
-  
-  // Generate service activity data as a fallback
+
   const generateServiceActivityData = useCallback((serviceData) => {
-    // Calculate days since creation
+
     const createdAt = new Date(serviceData.createdAt || new Date());
     const now = new Date();
     const daysSinceCreation = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
-    
-    // Generate data points based on real timestamps
+
     const data = [];
     let baseUpvotes = serviceData.upvotes || 0;
     let baseIssues = serviceData.issues || 0;
     let baseFeedbacks = serviceData.feedbacks || 0;
     
-    // Create at least 7 data points, or one per day since creation (whichever is greater)
-    const numPoints = Math.max(7, Math.min(daysSinceCreation, 30)); // Cap at 30 points
+
+    const numPoints = Math.max(7, Math.min(daysSinceCreation, 30)); 
     
     for (let i = numPoints - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       
-      // Distribute metrics over time with more recent days having more activity
       const dailyUpvotes = i === 0 ? baseUpvotes : Math.max(0, Math.floor(baseUpvotes * (i / numPoints)));
       const dailyIssues = i === 0 ? baseIssues : Math.max(0, Math.floor(baseIssues * (i / numPoints)));
       const dailyFeedbacks = i === 0 ? baseFeedbacks : Math.max(0, Math.floor(baseFeedbacks * (i / numPoints)));
@@ -253,14 +238,13 @@ const ServiceDetails = () => {
         upvotes: dailyUpvotes,
         issues: dailyIssues,
         feedbacks: dailyFeedbacks,
-        activity: Math.floor(Math.random() * 10) + 1, // Random activity metric
+        activity: Math.floor(Math.random() * 10) + 1,
       });
     }
     
     return data;
   }, []);
   
-  // Memoize fetchServiceDetails with useCallback and proper dependencies
   const fetchServiceDetails = useCallback(async () => {
     if (!id) return;
     
@@ -269,28 +253,19 @@ const ServiceDetails = () => {
       setError(null);
       const token = localStorage.getItem("accessToken");
       
-      // Fetch both service details and activity data in parallel
       const [serviceResponse, activityResponse] = await Promise.all([
-        // Fetch service details
         axios.get(`${API_BASE_URL}/services/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         }),
-        // Fetch service activity data
         axios.get(`${API_BASE_URL}/services/${id}/activity`, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
-        }).catch(() => ({ data: { data: null } })) // Handle if activity endpoint fails
+        }).catch(() => ({ data: { data: null } }))
       ]);
-
-      // Check if component is still mounted before updating state
       if (!isMounted.current) return;
-      
-      // Handle the specific API response structure
       if (serviceResponse.data && serviceResponse.data.data) {
         const serviceData = serviceResponse.data.data;
-        
-        // Set service information
         setService({
           serviceName: serviceData.serviceName || "",
           email: serviceData.email || "",
@@ -302,27 +277,21 @@ const ServiceDetails = () => {
           feedbacks: serviceData.feedbacks || 0,
           createdAt: serviceData.createdAt || new Date().toISOString(),
         });
-        
-        // Set activity data if available or generate it
         if (activityResponse.data && activityResponse.data.data) {
           setActivityData(activityResponse.data.data);
         } else {
           setActivityData(generateServiceActivityData(serviceData));
         }
-        
-        // Show success alert for data loading
         if (isMounted.current) {
           showAlertRef.current("Service Details", "Service information loaded successfully", "success");
         }
       } else {
-        // Fallback to old structure or handle error
         setError("Invalid data structure received from server");
         if (isMounted.current) {
           showAlertRef.current("Data Error", "Invalid data structure received from server", "error");
         }
       }
     } catch (err) {
-      // Check if component is still mounted before updating state
       if (!isMounted.current) return;
       
       setError("Failed to load service details");
@@ -331,28 +300,22 @@ const ServiceDetails = () => {
         showAlertRef.current("Error", "Failed to load service details", "error");
       }
     } finally {
-      // Check if component is still mounted before updating state
       if (isMounted.current) {
         setLoading(false);
       }
     }
-  }, [id, generateServiceActivityData]); // Only depend on id and the stable generateServiceActivityData
+  }, [id, generateServiceActivityData]); 
   
-  // Fetch service details on mount
+
   useEffect(() => {
-    // Set isMounted to true when component mounts
     isMounted.current = true;
-    
-    // Only fetch data when component mounts
     fetchServiceDetails();
-    
-    // Cleanup function when component unmounts
     return () => {
       isMounted.current = false;
     };
-  }, [fetchServiceDetails]); // Only run when fetchServiceDetails changes
+  }, [fetchServiceDetails]); 
 
-  // Handle upvote service
+
   const handleUpvoteService = useCallback(async () => {
     try {
       setIsUpvoting(true);
@@ -363,7 +326,6 @@ const ServiceDetails = () => {
         withCredentials: true,
       });
       
-      // Update local state to reflect the upvote
       if (isMounted.current) {
         setService(prevService => ({
           ...prevService,
@@ -381,9 +343,8 @@ const ServiceDetails = () => {
         setIsUpvoting(false);
       }
     }
-  }, [id]); // Only depend on id
+  }, [id]); 
 
-  // Navigation handlers for "See All" buttons
   const navigateToAllIssues = useCallback(() => {
     navigateRef.current(`/issues/${id}`);
   }, [id]);
@@ -392,7 +353,6 @@ const ServiceDetails = () => {
     navigateRef.current(`/feedbacks/${id}`);
   }, [id]);
 
-  // Handle submit issue
   const handleSubmitIssue = useCallback(async (formData) => {
     setSubmitting(true);
     try {
@@ -421,7 +381,6 @@ const ServiceDetails = () => {
     }
   }, [id]);
 
-  // Handle submit feedback
   const handleSubmitFeedback = useCallback(async (formData) => {
     setSubmitting(true);
     try {
@@ -453,11 +412,9 @@ const ServiceDetails = () => {
   const tryAgain = useCallback(() => {
     setLoading(true);
     setError(null);
-    // Call the memoized fetch function directly
     fetchServiceDetails();
-    // Show alert using the ref
     showAlertRef.current("Retrying", "Attempting to reload service details", "info");
-  }, [fetchServiceDetails]); // Only depend on fetchServiceDetails
+  }, [fetchServiceDetails]);
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-black">
@@ -482,7 +439,6 @@ const ServiceDetails = () => {
     </div>
   );
 
-  // Enhanced chart data with all metrics
   const chartData = {
     serviceData: activityData,
     serviceName: service?.serviceName || "",

@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Send, Clock, User, MessageCircle, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion } from "framer-motion";
 
-// API base URL
+
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 const IssueCommentPage = () => {
@@ -27,21 +27,18 @@ const IssueCommentPage = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   
-  // Reply functionality state
   const [selectedReply, setSelectedReply] = useState(null);
   const [newReply, setNewReply] = useState("");
   const [replyLoading, setReplyLoading] = useState(false);
   
-  // API health state
   const [apiHealthStatus, setApiHealthStatus] = useState({
     voteEndpoint: true,
     statusEndpoint: true
   });
 
-  // Get token with a helper function to ensure consistency
   const getAuthToken = () => {
     const token = localStorage.getItem("accessToken");
-    console.log("Retrieved token:", token); // Debug log
+    console.log("Retrieved token:", token);
     return token;
   };
 
@@ -62,7 +59,6 @@ const IssueCommentPage = () => {
       checkApiHealth();
     }
 
-    // Animation timing and scroll tracking
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 300);
@@ -78,7 +74,6 @@ const IssueCommentPage = () => {
     };
   }, [serviceId, issueId]);
 
-  // Check vote status separately with better error handling
   useEffect(() => {
     const checkUserVote = async () => {
       if (!user || !apiHealthStatus.voteEndpoint) return;
@@ -94,9 +89,6 @@ const IssueCommentPage = () => {
         setUserVote(response.data.voteType);
       } catch (err) {
         console.error("Error fetching user vote:", err);
-        // Don't set error state to avoid showing error toast for this non-critical operation
-        
-        // Try to infer vote from issue data if available
         if (issue && issue.userVote) {
           setUserVote(issue.userVote);
         }
@@ -106,14 +98,10 @@ const IssueCommentPage = () => {
     if (user) checkUserVote();
   }, [user, serviceId, issueId, issue, apiHealthStatus.voteEndpoint]);
 
-  // Check API endpoint health
   const checkApiHealth = async () => {
     try {
-      // Updated endpoint structure
-      // Check vote endpoint
       const voteEndpointStatus = await checkApiEndpoint(`/issues/service/${serviceId}/issues/${issueId}/vote`);
       
-      // Check status endpoint
       const statusEndpointStatus = await checkApiEndpoint(`/issues/service/${serviceId}/issues/${issueId}/status`);
       
       setApiHealthStatus({
@@ -129,10 +117,8 @@ const IssueCommentPage = () => {
     }
   };
 
-  // Helper function to check if an API endpoint is working
   const checkApiEndpoint = async (endpoint) => {
     try {
-      // Use HEAD request to check endpoint without fetching data
       await axios.head(
         `${API_BASE_URL}${endpoint}`,
         {
@@ -142,7 +128,6 @@ const IssueCommentPage = () => {
       );
       return true;
     } catch (err) {
-      // Only log the error, don't display to user
       return false;
     }
   };
@@ -151,7 +136,6 @@ const IssueCommentPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Updated endpoint structure
       const response = await axios.get(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}`, 
         {
@@ -160,14 +144,9 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Extract issue and comments from response
       const issueData = response.data.data;
       setIssue(issueData);
-      
-      // If the API returns comments directly, use those
       setComments(issueData.comments || []);
-      
-      // Set userVote from issue data
       if (issueData.userVote) {
         setUserVote(issueData.userVote);
       }
@@ -180,23 +159,18 @@ const IssueCommentPage = () => {
   };
 
   const handleVote = async (voteType) => {
-    if (!user) return; // Require login to vote
+    if (!user) return;
     
     setVoteLoading(true);
     try {
-      // Updated endpoint structure
-      // Determine if we're upvoting or downvoting based on parameter
       const endpoint = voteType === 'upvote' 
         ? `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/upvote` 
         : `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/downvote`;
       
-      // Optimistically update UI
       const currentVote = userVote;
       const updatedIssue = {...issue};
       
-      // Logic to handle vote changes
       if (currentVote === voteType) {
-        // User is removing their vote
         if (voteType === 'upvote') {
           updatedIssue.upvotes = (updatedIssue.upvotes || 1) - 1;
           updatedIssue.netVotes = (updatedIssue.netVotes || 1) - 1;
@@ -206,7 +180,6 @@ const IssueCommentPage = () => {
         }
         setUserVote(null);
       } else if (currentVote === null) {
-        // User is adding a new vote
         if (voteType === 'upvote') {
           updatedIssue.upvotes = (updatedIssue.upvotes || 0) + 1;
           updatedIssue.netVotes = (updatedIssue.netVotes || 0) + 1;
@@ -216,7 +189,6 @@ const IssueCommentPage = () => {
         }
         setUserVote(voteType);
       } else {
-        // User is switching vote type
         if (voteType === 'upvote') {
           updatedIssue.upvotes = (updatedIssue.upvotes || 0) + 1;
           updatedIssue.downvotes = (updatedIssue.downvotes || 1) - 1;
@@ -232,7 +204,6 @@ const IssueCommentPage = () => {
       setIssue(updatedIssue);
       
       try {
-        // Make API call
         await axios.post(
           endpoint,
           {},
@@ -243,10 +214,8 @@ const IssueCommentPage = () => {
         );
       } catch (voteErr) {
         
-        // Try alternative endpoint if primary fails
         if (voteErr.response?.status === 500) {
           try {
-            // Updated alternative endpoint structure
             await axios.post(
               `${API_BASE_URL}/issues/${issueId}/${voteType}`,
               {},
@@ -257,10 +226,10 @@ const IssueCommentPage = () => {
             );
 
           } catch (altErr) {
-            throw altErr; // Re-throw to trigger error handling below
+            throw altErr;
           }
         } else {
-          throw voteErr; // Re-throw non-500 errors
+          throw voteErr;
         }
       }
       
@@ -268,10 +237,8 @@ const IssueCommentPage = () => {
       console.error("Vote error:", err);
       setError(`Failed to ${voteType} issue. Please try again later.`);
       
-      // Revert to original state by refreshing data
       fetchIssue();
-      
-      // Clear error after 3 seconds
+
       setTimeout(() => setError(null), 3000);
     } finally {
       setVoteLoading(false);
@@ -283,7 +250,6 @@ const IssueCommentPage = () => {
     
     setCommentLoading(true);
     try {
-      // Updated endpoint structure
       const response = await axios.post(
         `${API_BASE_URL}/issues/service/${serviceId}/issues/${issueId}/comments`,
         { message: newComment },
@@ -293,14 +259,12 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Add the new comment to the existing comments
       setComments([...comments, response.data.data]);
       setNewComment("");
     } catch (err) {
       console.error("Add comment error:", err);
       setError(err.response?.data?.message || err.message || "Failed to add comment");
       
-      // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
     } finally {
       setCommentLoading(false);
@@ -309,7 +273,6 @@ const IssueCommentPage = () => {
 
   const handleLikeComment = async (commentId) => {
     try {
-      // Optimistically update UI first
       setComments(prevComments => 
         prevComments.map(comment => {
           if (comment._id === commentId) {
@@ -332,10 +295,8 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Update with actual server response data
       const { hasLiked, likeCount } = response.data.data;
-      
-      // Update comments state with server data
+
       setComments(prevComments => 
         prevComments.map(comment => 
           comment._id === commentId 
@@ -347,17 +308,14 @@ const IssueCommentPage = () => {
       console.error("Like comment error:", err);
       setError("Failed to toggle like. Please try again later.");
       
-      // Revert by refreshing comments
       fetchIssue();
       
-      // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
     }
   };
 
   const handleLikeReply = async (commentId, replyId) => {
     try {
-      // Optimistically update UI first
       setComments(prevComments => 
         prevComments.map(comment => {
           if (comment._id === commentId) {
@@ -388,10 +346,9 @@ const IssueCommentPage = () => {
         }
       );
       
-      // Update with actual server response data
+
       const { hasLiked, likeCount } = response.data.data;
-      
-      // Update comments state with server data
+
       setComments(prevComments => 
         prevComments.map(comment => {
           if (comment._id === commentId) {
@@ -411,10 +368,8 @@ const IssueCommentPage = () => {
       console.error("Like reply error:", err);
       setError("Failed to toggle reply like. Please try again later.");
       
-      // Revert by refreshing comments
       fetchIssue();
       
-      // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
     }
   };
@@ -424,7 +379,7 @@ const IssueCommentPage = () => {
     
     setReplyLoading(true);
     try {
-      // API call to add a reply to a comment
+
       const response = await axios.post(
         `${API_BASE_URL}/issues/comments/${commentId}/replies`,
         { message: newReply },
@@ -433,8 +388,7 @@ const IssueCommentPage = () => {
           withCredentials: true
         }
       );
-      
-      // Update the comments with the new reply
+
       setComments(prevComments => 
         prevComments.map(comment => {
           if (comment._id === commentId) {
@@ -445,14 +399,14 @@ const IssueCommentPage = () => {
         })
       );
       
-      // Reset reply form
+
       setNewReply("");
       setSelectedReply(null);
     } catch (err) {
       console.error("Reply error:", err);
       setError(err.response?.data?.message || err.message || "Failed to add reply");
       
-      // Clear error after 3 seconds
+
       setTimeout(() => setError(null), 3000);
     } finally {
       setReplyLoading(false);
@@ -462,13 +416,13 @@ const IssueCommentPage = () => {
   const updateIssueStatus = async (newStatus) => {
     setStatusLoading(true);
     try {
-      // Only proceed if status endpoint is working
+
       if (!apiHealthStatus.statusEndpoint) {
         setError("Status update functionality is currently unavailable");
         return;
       }
       
-      // Optimistically update UI
+
       setIssue(prev => ({ ...prev, status: newStatus }));
       
       await axios.patch(
@@ -483,17 +437,16 @@ const IssueCommentPage = () => {
       console.error("Status update error:", err);
       setError(err.response?.data?.message || err.message || "Failed to update status");
       
-      // Revert to original status
+
       fetchIssue();
       
-      // Clear error after 3 seconds
+
       setTimeout(() => setError(null), 3000);
     } finally {
       setStatusLoading(false);
     }
   };
 
-  // Helper function to format date
   const formatDate = (dateString) => {
     if (!dateString) return "";
     return new Date(dateString).toLocaleDateString('en-US', { 
@@ -505,7 +458,6 @@ const IssueCommentPage = () => {
     });
   };
 
-  // Helper function to get status color
   const getStatusColor = (status) => {
     switch(status?.toLowerCase()) {
       case 'open':

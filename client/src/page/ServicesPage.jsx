@@ -20,7 +20,6 @@ export default function ServicesPage() {
   const [isVisible, setIsVisible] = useState(false);
   const scrollY = useRef(0);
 
-  // Fetch services from backend - FUNCTIONALITY PRESERVED
   const fetchServices = async () => {
     try {
       setLoading(true);
@@ -43,7 +42,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     fetchServices();
-  }, [search, page, sortBy]); // FUNCTIONALITY PRESERVED
+  }, [search, page, sortBy]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,7 +60,6 @@ export default function ServicesPage() {
     };
   }, []);
 
-  // Function to truncate description text - FUNCTIONALITY PRESERVED
   const truncateDescription = (description, maxLength = 80) => {
     if (!description) return "Professional service provider for all your needs.";
     
@@ -75,7 +73,7 @@ export default function ServicesPage() {
       : `${truncated}...`;
   };
 
-  // Enhanced skeleton loader with pulse animation
+
   const SkeletonCard = () => (
     <motion.div 
       initial={{ opacity: 0.5 }}
@@ -87,24 +85,19 @@ export default function ServicesPage() {
 
   return (
     <div className="bg-gradient-to-b from-[#061426] to-[#0a2341] min-h-screen pt-20 pb-16 relative overflow-hidden">
-      {/* Animated background elements */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Animated gradient circles */}
         <div className="absolute w-[600px] h-[600px] rounded-full bg-[#0a4b8c]/10 blur-[100px] top-[10%] -left-[300px] animate-pulse"></div>
         <div className="absolute w-[600px] h-[600px] rounded-full bg-[#2a6baf]/10 blur-[100px] bottom-[20%] -right-[300px] animate-pulse" style={{ animationDuration: '8s' }}></div>
         <div className="absolute w-[400px] h-[400px] rounded-full bg-[#5396e3]/5 blur-[80px] top-[60%] left-[30%] animate-pulse" style={{ animationDuration: '12s' }}></div>
         
-        {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
         
-        {/* Animated lines */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform opacity-30" style={{ transform: `translateY(${20 + scrollY.current * 0.5}vh)` }}></div>
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform opacity-30" style={{ transform: `translateY(${40 + scrollY.current * 0.3}vh)` }}></div>
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform opacity-30" style={{ transform: `translateY(${60 + scrollY.current * 0.2}vh)` }}></div>
         </div>
         
-        {/* Animated particles */}
         {[...Array(20)].map((_, i) => (
           <div 
             key={i}
@@ -125,7 +118,6 @@ export default function ServicesPage() {
         transition={{ duration: 0.5 }}
         className="max-w-6xl mx-auto px-6 relative z-10"
       >
-        {/* Header with enhanced styling */}
         <div className="text-center mb-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -156,7 +148,6 @@ export default function ServicesPage() {
           </motion.p>
         </div>
         
-        {/* Search and Filter Bar with enhanced styling */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -361,9 +352,9 @@ export default function ServicesPage() {
                 <ChevronLeft size={20} />
               </button>
               
-              {/* Page Number Buttons */}
+
               {[...Array(totalPages)].map((_, i) => {
-                // Calculate which page numbers to show
+
                 if (
                   i === 0 || // Always show first page
                   i === totalPages - 1 || // Always show last page

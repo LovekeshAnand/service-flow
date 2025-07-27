@@ -6,7 +6,7 @@ export default function CountUp({
   from = 0,
   direction = "up",
   delay = 0,
-  duration = 2, // Duration of the animation in seconds
+  duration = 2, 
   className = "",
   startWhen = true,
   separator = "",
@@ -16,9 +16,9 @@ export default function CountUp({
   const ref = useRef(null);
   const motionValue = useMotionValue(direction === "down" ? to : from);
 
-  // Calculate damping and stiffness based on duration
-  const damping = 20 + 40 * (1 / duration); // Adjust this formula for finer control
-  const stiffness = 100 * (1 / duration);   // Adjust this formula for finer control
+
+  const damping = 20 + 40 * (1 / duration); 
+  const stiffness = 100 * (1 / duration);   
 
   const springValue = useSpring(motionValue, {
     damping,
@@ -27,14 +27,14 @@ export default function CountUp({
 
   const isInView = useInView(ref, { once: true, margin: "0px" });
 
-  // Set initial text content to the initial value based on direction
+
   useEffect(() => {
     if (ref.current) {
       ref.current.textContent = String(direction === "down" ? to : from);
     }
   }, [from, to, direction]);
 
-  // Start the animation when in view and startWhen is true
+
   useEffect(() => {
     if (isInView && startWhen) {
       if (typeof onStart === "function") {
@@ -58,7 +58,7 @@ export default function CountUp({
     }
   }, [isInView, startWhen, motionValue, direction, from, to, delay, onStart, onEnd, duration]);
 
-  // Update text content with formatted number on spring value change
+
   useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {

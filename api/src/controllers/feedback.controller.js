@@ -6,7 +6,6 @@ import { Comment } from "../models/commentSchema.model.js";
 import { Like } from "../models/likeSchema.model.js";
 import { Vote } from "../models/voteSchema.model.js";
 
-/** ✅ 1. Get All Feedbacks for a Specific Service */
 const getAllFeedbacksForService = asyncHandler(async (req, res) => {
     const { serviceId } = req.params;
     const { page = 1, limit = 10, search = "", sortBy = "votes" } = req.query;
@@ -22,14 +21,13 @@ const getAllFeedbacksForService = asyncHandler(async (req, res) => {
     const totalFeedbacks = await Feedback.countDocuments(query);
     const totalPages = Math.ceil(totalFeedbacks / limit);
 
-    // Determine the sort order
     let sortOrder = {};
     if (sortBy === "votes") {
-        sortOrder = { netVotes: -1, createdAt: -1 }; // Sort by votes, then by date
+        sortOrder = { netVotes: -1, createdAt: -1 };
     } else if (sortBy === "date") {
-        sortOrder = { createdAt: -1 }; // Sort by date only
+        sortOrder = { createdAt: -1 };
     } else {
-        sortOrder = { netVotes: -1, createdAt: -1 }; // Default sort
+        sortOrder = { netVotes: -1, createdAt: -1 };
     }
 
     const feedbacks = await Feedback.find(query)
@@ -41,7 +39,6 @@ const getAllFeedbacksForService = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { feedbacks, totalPages, currentPage: parseInt(page) }, "Feedbacks retrieved successfully."));
 });
 
-/** ✅ 2. Get All Feedbacks Created by a Specific User */
 const getAllFeedbacksByUser = asyncHandler(async (req, res) => {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -58,7 +55,6 @@ const getAllFeedbacksByUser = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { feedbacks, totalPages, currentPage: parseInt(page) }, "User's feedbacks retrieved successfully."));
 });
 
-/** ✅ 3. Get a Single Feedback with Comments & Replies */
 const getFeedbackById = asyncHandler(async (req, res) => {
     const { serviceId, feedbackId } = req.params;
     const userId = req.user?._id;
@@ -76,14 +72,11 @@ const getFeedbackById = asyncHandler(async (req, res) => {
     if (!feedback) {
         throw new ApiError(404, "Feedback not found.");
     }
-
-    // Get the current user's vote on this feedback, if any
     let userVote = null;
     if (userId) {
         userVote = await Vote.findOne({ user: userId, feedback: feedbackId });
     }
 
-    // Add userVote to the response
     const responseData = {
         ...feedback.toObject(),
         userVote: userVote ? userVote.voteType : null
@@ -92,7 +85,6 @@ const getFeedbackById = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, responseData, "Feedback details retrieved successfully."));
 });
 
-/** ✅ 4. Create Feedback for a Specific Service */
 const createFeedback = asyncHandler(async (req, res) => {
     const { serviceId } = req.params;
     const { title, description } = req.body;
@@ -115,7 +107,7 @@ const createFeedback = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, feedback, "Feedback created successfully."));
 });
 
-/** ✅ 5. Delete Feedback (Only Creator Can Delete) */
+
 const deleteFeedback = asyncHandler(async (req, res) => {
     const { serviceId, feedbackId } = req.params;
     const userId = req.user._id;
@@ -130,17 +122,16 @@ const deleteFeedback = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Unauthorized: You can only delete your own feedback.");
     }
 
-    // Delete all associated votes
     await Vote.deleteMany({ feedback: feedbackId });
     
-    // Delete feedback and associated comments
+
     await Comment.deleteMany({ _id: { $in: feedback.comments } });
     await feedback.deleteOne();
 
     return res.status(200).json(new ApiResponse(200, {}, "Feedback deleted successfully."));
 });
 
-/** ✅ 6. Add a Comment to Feedback */
+
 const addComment = asyncHandler(async (req, res) => {
     const { feedbackId } = req.params;
     const { message } = req.body;
@@ -163,7 +154,7 @@ const addComment = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, comment, "Comment added successfully."));
 });
 
-/** ✅ 7. Reply to a Comment */
+
 const replyToComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const { message } = req.body;
@@ -186,7 +177,7 @@ const replyToComment = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, reply, "Reply added successfully."));
 });
 
-/** ✅ 8. Like/Unlike a Comment */
+
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const userId = req.user._id;
@@ -202,7 +193,6 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, like, "Comment liked."));
 });
 
-/** ✅ 9. Like/Unlike a Reply */
 const toggleReplyLike = asyncHandler(async (req, res) => {
     const { replyId } = req.params;
     const userId = req.user._id;
@@ -218,7 +208,6 @@ const toggleReplyLike = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, like, "Reply liked."));
 });
 
-/** ✅ 10. Delete a Comment (Only Owner) */
 const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     const userId = req.user._id;
@@ -237,8 +226,6 @@ const deleteComment = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, {}, "Comment deleted successfully."));
 });
 
-/** ✅ 11. Upvote a Feedback */
-/** ✅ 11. Upvote a Feedback */
 const upvoteFeedback = asyncHandler(async (req, res) => {
     const { feedbackId } = req.params;
     const userId = req.user._id;
@@ -248,7 +235,7 @@ const upvoteFeedback = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Feedback not found.");
     }
 
-    // Check if the user has already voted
+
     const existingVote = await Vote.findOne({ 
         user: userId, 
         targetId: feedbackId,
@@ -257,30 +244,29 @@ const upvoteFeedback = asyncHandler(async (req, res) => {
 
     if (existingVote) {
         if (existingVote.voteType === "upvote") {
-            // User is removing their upvote
+
             await Vote.findByIdAndDelete(existingVote._id);
             
-            // Update the feedback vote counts
             feedback.upvotes -= 1;
             feedback.netVotes -= 1;
             await feedback.save();
             
             return res.status(200).json(new ApiResponse(200, { voteType: null }, "Upvote removed."));
         } else {
-            // User is changing from downvote to upvote
+
             existingVote.voteType = "upvote";
             await existingVote.save();
             
-            // Update the feedback vote counts
+
             feedback.upvotes += 1;
             feedback.downvotes -= 1;
-            feedback.netVotes += 2; // +1 for adding upvote, +1 for removing downvote
+            feedback.netVotes += 2; 
             await feedback.save();
             
             return res.status(200).json(new ApiResponse(200, { voteType: "upvote" }, "Vote changed to upvote."));
         }
     } else {
-        // Create a new upvote
+
         await Vote.create({ 
             user: userId, 
             targetId: feedbackId,
@@ -288,7 +274,7 @@ const upvoteFeedback = asyncHandler(async (req, res) => {
             voteType: "upvote" 
         });
         
-        // Update the feedback vote counts
+
         feedback.upvotes += 1;
         feedback.netVotes += 1;
         await feedback.save();
@@ -297,7 +283,7 @@ const upvoteFeedback = asyncHandler(async (req, res) => {
     }
 });
 
-/** ✅ 12. Downvote a Feedback */
+
 const downvoteFeedback = asyncHandler(async (req, res) => {
     const { feedbackId } = req.params;
     const userId = req.user._id;
@@ -307,7 +293,7 @@ const downvoteFeedback = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Feedback not found.");
     }
 
-    // Check if the user has already voted
+
     const existingVote = await Vote.findOne({ 
         user: userId, 
         targetId: feedbackId,
@@ -316,30 +302,28 @@ const downvoteFeedback = asyncHandler(async (req, res) => {
 
     if (existingVote) {
         if (existingVote.voteType === "downvote") {
-            // User is removing their downvote
+
             await Vote.findByIdAndDelete(existingVote._id);
             
-            // Update the feedback vote counts
+
             feedback.downvotes -= 1;
             feedback.netVotes += 1;
             await feedback.save();
             
             return res.status(200).json(new ApiResponse(200, { voteType: null }, "Downvote removed."));
         } else {
-            // User is changing from upvote to downvote
+
             existingVote.voteType = "downvote";
             await existingVote.save();
-            
-            // Update the feedback vote counts
             feedback.upvotes -= 1;
             feedback.downvotes += 1;
-            feedback.netVotes -= 2; // -1 for removing upvote, -1 for adding downvote
+            feedback.netVotes -= 2; 
             await feedback.save();
             
             return res.status(200).json(new ApiResponse(200, { voteType: "downvote" }, "Vote changed to downvote."));
         }
     } else {
-        // Create a new downvote
+
         await Vote.create({ 
             user: userId, 
             targetId: feedbackId,
@@ -347,7 +331,7 @@ const downvoteFeedback = asyncHandler(async (req, res) => {
             voteType: "downvote" 
         });
         
-        // Update the feedback vote counts
+
         feedback.downvotes += 1;
         feedback.netVotes -= 1;
         await feedback.save();
@@ -356,7 +340,7 @@ const downvoteFeedback = asyncHandler(async (req, res) => {
     }
 });
 
-/** ✅ 13. Get User's Vote on a Feedback */
+
 const getUserVote = asyncHandler(async (req, res) => {
     const { feedbackId } = req.params;
     const userId = req.user._id;

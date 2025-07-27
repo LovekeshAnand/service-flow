@@ -26,7 +26,6 @@ const About = () => {
     };
   }, []);
 
-  // Animated feature box component
   const FeatureBox = ({ icon: Icon, title, description, delay = 0 }) => {
     const boxRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -72,7 +71,6 @@ const About = () => {
     );
   };
 
-  // Animated step card component
   const StepCard = ({ number, title, description, delay = 0 }) => {
     const cardRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -120,7 +118,6 @@ const About = () => {
     );
   };
 
-  // Future plans card component
   const FuturePlanCard = ({ icon: Icon, title, description, delay = 0 }) => {
     const cardRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -167,7 +164,6 @@ const About = () => {
     );
   };
 
-  // Benefits component
   const BenefitItem = ({ title, description, emoji, delay = 0 }) => {
     const itemRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -328,7 +324,6 @@ const About = () => {
         </div>
       </div>
 
-      {/* How It Works Section - REDUCED PADDING */}
       <div ref={howItWorksRef} className="py-6 px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className={`text-center mb-8`}>
@@ -369,7 +364,7 @@ const About = () => {
         </div>
       </div>
 
-      {/* Key Features Section - REDUCED PADDING */}
+
       <div ref={featuresRef} className="py-12 px-4 relative z-10 bg-blue-950/30">
         <div className="max-w-7xl mx-auto">
           <div className={`text-center mb-8`}>
@@ -422,7 +417,7 @@ const About = () => {
         </div>
       </div>
 
-      {/* Why Use Service Flow Section - REDUCED PADDING */}
+
       <div ref={whyUsRef} className="py-12 px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className={`text-center mb-8`}>
@@ -474,14 +469,14 @@ const About = () => {
             title="Dashboard Overview" 
             description="Comprehensive analytics dashboard showing feedback trends, user engagement metrics, and actionable insights at a glance."
             type="Dashboard Screenshot"
-            image="/dashboard.png"  // Replace with actual screenshot filename
+            image="/dashboard.png"  
             delay={100}
         />
         <ScreenshotCard 
             title="User Profile Page" 
             description="Personalized profile displaying submitted feedback, upvoted issues, and activity history for both users and businesses."
             type="Profile Screenshot"
-            image="/profile.png"  // Replace with actual screenshot filename
+            image="/profile.png"  
             delay={200}
         />
 </div>

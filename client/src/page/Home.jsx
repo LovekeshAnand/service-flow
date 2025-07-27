@@ -25,15 +25,12 @@ const Home = () => {
     const handleScroll = () => {
       scrollY.current = window.scrollY;
       
-      // Calculate scroll progress for the video container
       if (containerRef.current) {
         const { top, height } = containerRef.current.getBoundingClientRect();
         const windowHeight = window.innerHeight;
         
-        // Calculate progress as the container moves through the viewport
         let progress = 0;
         if (top < windowHeight) {
-          // Start when the top of the container enters the viewport
           progress = Math.min(1, Math.max(0, 1 - (top / windowHeight)));
         }
         setScrollProgress(progress);
@@ -61,14 +58,14 @@ const Home = () => {
   const toggleMute = () => {
     if (videoRef.current) {
       setIsMuted((prevMuted) => {
-        videoRef.current.muted = !prevMuted; // Ensure the video element's muted property is updated correctly
-        return !prevMuted; // Update state accordingly
+        videoRef.current.muted = !prevMuted; 
+        return !prevMuted; 
       });
     }
   };
   
 
-  // Modern animated feature card component
+
   const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => {
     const cardRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -114,7 +111,6 @@ const Home = () => {
     );
   };
 
-  // Modern testimonial card component
   const TestimonialCard = ({ name, role, content, rating, delay = 0 }) => {
     const cardRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -173,7 +169,6 @@ const Home = () => {
     );
   };
 
-  // Partner logo component
   const PartnerLogo = ({ name, delay = 0 }) => {
     const logoRef = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -217,17 +212,13 @@ const Home = () => {
 
   return (
     <div className="w-full bg-background text-foreground relative overflow-hidden">
-      {/* Animated background elements */}
+
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Animated gradient circles */}
+
         <div className="absolute w-[600px] h-[600px] rounded-full bg-[#0a4b8c]/10 blur-[100px] top-[10%] -left-[300px] animate-pulse"></div>
         <div className="absolute w-[600px] h-[600px] rounded-full bg-[#2a6baf]/10 blur-[100px] bottom-[20%] -right-[300px] animate-pulse" style={{ animationDuration: '8s' }}></div>
         <div className="absolute w-[400px] h-[400px] rounded-full bg-[#5396e3]/5 blur-[80px] top-[60%] left-[30%] animate-pulse" style={{ animationDuration: '12s' }}></div>
-        
-        {/* /* Grid pattern overlay
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div> */ }
-        
-        {/* Animated lines */}
+
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform translate-y-[20vh] opacity-30" style={{ transform: `translateY(${20 + scrollY.current * 0.5}vh)` }}></div>
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform translate-y-[40vh] opacity-30" style={{ transform: `translateY(${40 + scrollY.current * 0.3}vh)` }}></div>

@@ -1,4 +1,3 @@
-// models/voteSchema.model.js
 import mongoose, { Schema } from "mongoose";
 
 const voteSchema = new Schema(
@@ -28,7 +27,7 @@ const voteSchema = new Schema(
   }
 );
 
-// Ensure a user can only have one vote per target
+
 voteSchema.index({ user: 1, targetId: 1, targetType: 1 }, { unique: true });
 
 export const Vote = mongoose.model("Vote", voteSchema);

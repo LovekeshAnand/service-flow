@@ -34,7 +34,6 @@ export default function UserFeedbacksPage() {
   }, [userId, debouncedSearch, sortBy, sortOrder, pagination.currentPage]);
 
   useEffect(() => {
-    // Animation timing and scroll tracking
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 300);
@@ -87,7 +86,6 @@ export default function UserFeedbacksPage() {
     }
   }
 
-  // Format date function
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -96,7 +94,6 @@ export default function UserFeedbacksPage() {
     });
   };
 
-  // Skeleton loader component
   const SkeletonCard = () => (
     <motion.div 
       initial={{ opacity: 0.5 }}

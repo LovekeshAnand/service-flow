@@ -5,7 +5,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { Search, ThumbsUp, ThumbsDown, Filter, AlertCircle, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Use the same API base URL as in your other components
+
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 export default function FeedbacksPage() {
@@ -27,7 +27,6 @@ export default function FeedbacksPage() {
   }, [serviceId, debouncedSearch, sortBy]);
 
   useEffect(() => {
-    // Animation timing and scroll tracking
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 300);
@@ -98,14 +97,12 @@ export default function FeedbacksPage() {
         throw new Error(errorData.message || `Failed to ${voteType} feedback`);
       }
       
-      // Refetch feedbacks after successful vote
       fetchFeedbacks();
     } catch (error) {
       setError(error.message || `Failed to ${voteType} feedback`);
     }
   }
 
-  // Format date function
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -114,7 +111,6 @@ export default function FeedbacksPage() {
     });
   };
 
-  // Skeleton loader component with pulse animation
   const SkeletonCard = () => (
     <motion.div 
       initial={{ opacity: 0.5 }}

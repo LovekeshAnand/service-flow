@@ -9,7 +9,7 @@ export const AlertProvider = ({ children }) => {
   const showAlert = (title, description, color = "success") => {
     setAlert({ isVisible: true, title, description, color });
 
-    // Auto-hide the alert after 5 seconds
+
     setTimeout(() => setAlert({ ...alert, isVisible: false }), 5000);
   };
 
@@ -31,5 +31,5 @@ export const AlertProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the alert context
+
 export const useAlert = () => useContext(AlertContext);

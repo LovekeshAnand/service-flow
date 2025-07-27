@@ -6,7 +6,6 @@ import { Search, ThumbsUp, ThumbsDown, Filter, AlertCircle, ChevronLeft, Chevron
 import { motion } from "framer-motion";
 import axios from "axios";
 
-// Use the same API base URL as in your ServiceDetails component
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
 export default function IssuesPage() {
@@ -29,7 +28,7 @@ export default function IssuesPage() {
   }, [serviceId, debouncedSearch, sortBy]);
 
   useEffect(() => {
-    // Animation timing and scroll tracking
+
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 300);
@@ -51,8 +50,6 @@ export default function IssuesPage() {
     try {
       const token = localStorage.getItem("accessToken");
       
-      
-      // Use the absolute URL with the correct API base URL
       const response = await axios.get(
         `${API_BASE_URL}/issues/service/${serviceId}/issues`, 
         {
@@ -77,7 +74,6 @@ export default function IssuesPage() {
   }
 
   async function handleVote(issueId, voteType, event) {
-    // Stop event propagation to prevent navigation when clicking vote buttons
     event.stopPropagation();
     
     try {
@@ -93,8 +89,7 @@ export default function IssuesPage() {
           withCredentials: true
         }
       );
-      
-      // Refetch issues after voting
+
       fetchIssues();
     } catch (error) {
       console.error(`Error ${voteType}ing issue:`, error);
@@ -102,12 +97,11 @@ export default function IssuesPage() {
     }
   }
 
-  // Function to handle issue click and navigate to issue detail
   const handleIssueClick = (issueId) => {
     navigate(`/services/${serviceId}/issues/${issueId}`);
   };
 
-  // Function to get status badge color
+
   const getStatusColor = (status) => {
     switch(status?.toLowerCase()) {
       case 'open':
@@ -123,7 +117,6 @@ export default function IssuesPage() {
     }
   };
 
-  // Skeleton loader component with pulse animation
   const SkeletonCard = () => (
     <motion.div 
       initial={{ opacity: 0.5 }}
@@ -133,7 +126,7 @@ export default function IssuesPage() {
     />
   );
 
-  // Format date function
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
       year: 'numeric', 
