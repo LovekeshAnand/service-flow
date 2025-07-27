@@ -159,4 +159,4 @@ Contributions, suggestions, and improvements are always welcome!
 
 ## 📬 Contact
 
-Have ideas or need help? Reach out at **lovekeshandan.dev@gmail.com**
+Have ideas or need help? Reach out at **lovekeshanand6@gmail.com**
