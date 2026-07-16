@@ -74,7 +74,7 @@ export default function FeedbacksPage() {
 
   async function handleVote(feedbackId, voteType) {
     try {
-      const token = localStorage.getItem('accesstoken');
+      const token = localStorage.getItem('accessToken');
       if (!token) {
         setError("Please login to vote on feedback");
         return;

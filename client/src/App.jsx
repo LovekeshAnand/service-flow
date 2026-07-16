@@ -17,6 +17,8 @@ import UserIssuesPage from "../src/page/UserIssuesPage";
 import UserFeedbacksPage from "../src/page/UserFeedbacksPage";
 import NotFound from "../src/page/NotFound";
 import IssueCommentPage from "../src/page/IssueCommentPage";
+import LoginPage from "../src/page/LoginPage";
+import RegisterPage from "../src/page/RegisterPage";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,8 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} /> {/* Add the About page route */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/services/:id" element={<ServiceDetails />} />

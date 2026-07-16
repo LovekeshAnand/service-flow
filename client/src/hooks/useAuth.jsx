@@ -1,7 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 // Create an auth context
 const AuthContext = createContext();
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + "/api/v1";
 
 // Auth provider component
 export const AuthProvider = ({ children }) => {
@@ -13,25 +16,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        // Check localStorage for token using 'accessToken' key
         const token = localStorage.getItem('accessToken');
+        const storedProfile = localStorage.getItem('profile');
         
-        if (token) {
-          // For now, just mock user data based on the token
-          // In a real app, you'd fetch this from your API
-          const userData = {
-            id: '1',
-            name: 'Test User',
-            email: 'user@example.com',
-            role: 'service_owner' // Setting as service_owner for testing
-          };
-          
-          setUser(userData);
+        if (token && storedProfile && storedProfile !== 'undefined' && storedProfile !== 'null') {
+          setUser(JSON.parse(storedProfile));
         }
       } catch (err) {
-        console.error('Authentication error:', err);
+        console.error('Authentication error on initial load:', err);
         setError('Failed to authenticate');
-        localStorage.removeItem('accessToken'); // Updated to 'accessToken'
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('profile');
       } finally {
         setLoading(false);
       }
@@ -46,68 +41,104 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      // Mock successful login
-      const data = {
-        user: {
-          id: '1',
-          name: credentials?.email?.split('@')[0] || 'User',
-          email: credentials?.email || 'user@example.com',
-          role: 'service_owner' // Setting as service_owner for testing
-        },
-        token: 'mock-jwt-token'
-      };
+      const response = await axios.post(`${API_BASE_URL}/users/login`, credentials);
       
-      // Store token using 'accessToken' key
-      localStorage.setItem('accessToken', data.token);
-      
-      // Set user
-      setUser(data.user);
-      
-      return { success: true };
+      const responseData = response.data?.data;
+      if (response.data && responseData) {
+        const accessToken = responseData.accessToken || responseData.token;
+        const profileData = responseData.user || responseData.service;
+        
+        if (!accessToken) {
+          throw new Error('Access token is missing from the response.');
+        }
+
+        if (responseData.service && profileData) {
+          profileData.isService = true;
+        }
+
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('profile', JSON.stringify(profileData));
+        setUser(profileData);
+        
+        return { success: true, user: profileData };
+      } else {
+        throw new Error('Invalid response structure from server.');
+      }
     } catch (err) {
-      setError(err.message || 'Login failed');
-      return { success: false, error: err.message };
+      const errMsg = err.response?.data?.message || err.message || 'Login failed';
+      setError(errMsg);
+      return { success: false, error: errMsg };
     } finally {
       setLoading(false);
     }
   };
 
   // Register function
-  const register = async (userData) => {
+  const register = async (formData, type = 'user') => {
     setLoading(true);
     setError(null);
     
     try {
-      // Mock successful registration
-      const data = {
-        user: {
-          id: '1',
-          name: userData.name,
-          email: userData.email,
-          role: 'service_owner' // Setting as service_owner for testing
-        },
-        token: 'mock-jwt-token'
-      };
+      const endpoint = type === 'user' ? '/users/register' : '/services/register';
+      const headers = type === 'service' ? { 'Content-Type': 'multipart/form-data' } : {};
       
-      // Store token using 'accessToken' key
-      localStorage.setItem('accessToken', data.token);
+      const response = await axios.post(`${API_BASE_URL}${endpoint}`, formData, { headers });
+      const responseData = response.data?.data;
       
-      // Set user
-      setUser(data.user);
-      
-      return { success: true };
+      if (response.data && responseData) {
+        const accessToken = responseData.accessToken || responseData.token;
+        const profileData = responseData.user || responseData.service;
+        
+        if (type === 'service' && profileData) {
+          profileData.isService = true;
+        }
+
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+        }
+        if (profileData) {
+          localStorage.setItem('profile', JSON.stringify(profileData));
+          setUser(profileData);
+        }
+        
+        return { success: true, user: profileData };
+      } else {
+        throw new Error('Invalid response structure from server.');
+      }
     } catch (err) {
-      setError(err.message || 'Registration failed');
-      return { success: false, error: err.message };
+      const errMsg = err.response?.data?.message || err.message || 'Registration failed';
+      setError(errMsg);
+      return { success: false, error: errMsg };
     } finally {
       setLoading(false);
     }
   };
 
   // Logout function
-  const logout = () => {
-    localStorage.removeItem('accessToken'); // Already correct
-    setUser(null);
+  const logout = async () => {
+    const token = localStorage.getItem('accessToken');
+    const isService = user && (user.isService || user.serviceName || user.service_name);
+    const endpoint = isService ? '/services/logout' : '/users/logout';
+    
+    try {
+      if (token) {
+        await axios.post(
+          `${API_BASE_URL}${endpoint}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+      }
+    } catch (err) {
+      console.error('API logout request failed:', err);
+    } finally {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('profile');
+      setUser(null);
+    }
   };
 
   // Check if user has a specific role
@@ -117,7 +148,7 @@ export const AuthProvider = ({ children }) => {
 
   // Get authentication token
   const getToken = () => {
-    return localStorage.getItem('accessToken'); // Already correct
+    return localStorage.getItem('accessToken');
   };
 
   // Provide auth context value

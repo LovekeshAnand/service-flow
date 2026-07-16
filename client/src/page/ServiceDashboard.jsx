@@ -98,7 +98,7 @@ const ServiceDashboard = () => {
       try {
         setLoading(true);
         
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
         const [serviceResponse, activityResponse] = await Promise.all([
           axios.get(`${API_BASE_URL}/${serviceId}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -202,7 +202,7 @@ const ServiceDashboard = () => {
     try {
       setIsDeleting(true);
       
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       await axios.delete(`${API_BASE_URL}/${serviceId}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
@@ -223,7 +223,7 @@ const ServiceDashboard = () => {
     try {
       setIsUpvoting(true);
       
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       await axios.post(`${API_BASE_URL}/${serviceId}/upvote`, {}, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,

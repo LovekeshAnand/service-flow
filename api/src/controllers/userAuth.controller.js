@@ -10,14 +10,14 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 
-const generateAccessAndRefreshTokens = async (userId) => {
+const generateAccessAndRefreshTokens = async (userId, isService = false) => {
   try {
-    const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const entity = isService ? await Service.findById(userId) : await User.findById(userId);
+    const accessToken = entity.generateAccessToken();
+    const refreshToken = entity.generateRefreshToken();
 
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    entity.refreshToken = refreshToken;
+    await entity.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
   } catch (error) {
@@ -80,29 +80,39 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password} = req.body;
+  const { email, password } = req.body;
 
   if (!email && !password) {
     throw new ApiError(400, "Password or email is required");
   }
 
-  const user = await User.findOne({ email });
+  // Look for email in User schema first
+  let user = await User.findOne({ email });
+  let isService = false;
+  let loggedInEntity;
 
-  if (!user) {
-    throw new ApiError(404, "User does not exist!");
+  if (user) {
+    const isPasswordValid = await user.isPasswordCorrect(password);
+    if (!isPasswordValid) {
+      throw new ApiError(401, "Invalid user credentials!");
+    }
+    loggedInEntity = await User.findById(user._id).select("-password -refreshToken");
+  } else {
+    // Look for email in Service schema
+    const service = await Service.findOne({ email });
+    if (!service) {
+      throw new ApiError(404, "Account with this email does not exist!");
+    }
+
+    const isPasswordValid = await service.isPasswordCorrect(password);
+    if (!isPasswordValid) {
+      throw new ApiError(401, "Invalid credentials!");
+    }
+    loggedInEntity = await Service.findById(service._id).select("-password -refreshToken");
+    isService = true;
   }
 
-  const isPasswordValid = await user.isPasswordCorrect(password);
-
-  if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid user credentials!");
-  }
-
-
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
-
-
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(loggedInEntity._id, isService);
 
   if (!accessToken || !refreshToken) {
     throw new ApiError(500, "Failed to generate authentication tokens");
@@ -120,9 +130,18 @@ const loginUser = asyncHandler(async (req, res) => {
     sameSite: "Strict",
   });
 
+  if (isService) {
+    return res.status(200).json(
+      new ApiResponse(200, {
+        service: loggedInEntity,
+        accessToken
+      }, "Service logged in successfully!")
+    );
+  }
+
   return res.status(200).json(
-    new ApiResponse(200, { 
-      user: loggedInUser, 
+    new ApiResponse(200, {
+      user: loggedInEntity,
       accessToken
     }, "User logged in successfully!")
   );
