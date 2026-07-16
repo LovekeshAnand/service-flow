@@ -17,13 +17,16 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const queryParams = new URLSearchParams(location.search);
+  const redirectParam = queryParams.get("redirect");
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const from = location.state?.from?.pathname || "/";
+      const from = redirectParam || location.state?.from?.pathname || "/";
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, user, navigate, location]);
+  }, [isAuthenticated, user, navigate, location, redirectParam]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -51,7 +54,7 @@ export default function LoginPage() {
         const isService = result.user?.isService || result.user?.serviceName;
         toast.success(`Welcome back, ${name}!`);
         
-        const from = location.state?.from?.pathname || (isService ? `/services/${result.user?._id || result.user?.id}/dashboard` : "/");
+        const from = redirectParam || location.state?.from?.pathname || (isService ? `/services/${result.user?._id || result.user?.id}/dashboard` : "/");
         navigate(from, { replace: true });
       } else {
         setErrorMsg(result.error || "Login failed. Please check your credentials.");

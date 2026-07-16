@@ -6,6 +6,23 @@ const AuthContext = createContext();
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + "/api/v1";
 
+// Axios response interceptor to handle 401 Unauthorized errors globally
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('profile');
+      
+      const currentPath = window.location.pathname;
+      if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register')) {
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

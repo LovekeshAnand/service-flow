@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Search, ThumbsUp, ThumbsDown, Filter, AlertCircle, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
-
+import axios from "axios";
+import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL + "/api/v1";
 
@@ -47,26 +48,18 @@ export default function FeedbacksPage() {
     setError(null);
     try {
       const token = localStorage.getItem('accessToken');
-      
-      
-      const response = await fetch(
+      const response = await axios.get(
         `${API_BASE_URL}/feedbacks/service/${serviceId}/feedbacks?search=${debouncedSearch}&sortBy=${sortBy}`,
         {
           headers: {
             Authorization: token ? `Bearer ${token}` : ""
           },
-          credentials: "include"
+          withCredentials: true
         }
       );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch feedbacks');
-      }
-      
-      const data = await response.json();
-      setFeedbacks(data.data.feedbacks || []);
+      setFeedbacks(response.data?.data?.feedbacks || []);
     } catch (error) {
-      setError(error.message || "Failed to fetch feedbacks");
+      setError(error.response?.data?.message || error.message || "Failed to fetch feedbacks");
     } finally {
       setLoading(false);
     }
@@ -76,30 +69,26 @@ export default function FeedbacksPage() {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        setError("Please login to vote on feedback");
+        toast.error("Please login to vote on feedback");
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;
       }
       
-      
-      const response = await fetch(
+      await axios.post(
         `${API_BASE_URL}/feedbacks/service/${serviceId}/feedbacks/${feedbackId}/${voteType}`,
+        {},
         {
-          method: "POST",
           headers: {
-            "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         }
       );
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to ${voteType} feedback`);
-      }
-      
       fetchFeedbacks();
     } catch (error) {
-      setError(error.message || `Failed to ${voteType} feedback`);
+      setError(error.response?.data?.message || `Failed to ${voteType} feedback`);
+      toast.error(error.response?.data?.message || `Failed to ${voteType} feedback`);
     }
   }
 
